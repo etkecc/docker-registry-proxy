@@ -109,9 +109,13 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			// get IP first
 			ip := c.RealIP()
-			log := apm.Log(c.Request().Context()).With().Str("ip", ip).Logger()
+			log := apm.Log(c.Request().Context()).With().
+				Any("headers", c.Request().Header).
+				Str("url", c.Request().URL.String()).
+				Str("ip", ip).
+				Logger()
 			if ip == "" {
-				log.Error().Any("headers", c.Request().Header).Msg("Failed to get client IP")
+				log.Error().Msg("Failed to get client IP")
 				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get real IP")
 			}
 
@@ -129,13 +133,17 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 
 func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		src := c.Request().URL
 		dst := &url.URL{
 			Scheme: target.Scheme,
 			Host:   target.Host,
 		}
-		log := apm.Log(c.Request().Context()).With().Str("src", src.String()).Str("dst", dst.String()).Logger()
-		log.Debug().Msg("proxying")
+		log := apm.Log(c.Request().Context()).With().
+			Any("headers", c.Request().Header).
+			Str("url", c.Request().URL.String()).
+			Str("target", dst.String()).
+			Str("ip", c.RealIP()).
+			Logger()
+		log.Info().Msg("proxying")
 		proxy := httputil.ReverseProxy{
 			Transport: apm.WrapRoundTripper(http.DefaultTransport),
 			Rewrite: func(r *httputil.ProxyRequest) {
