@@ -111,6 +111,7 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 			ip := c.RealIP()
 			log := apm.Log(c.Request().Context()).With().
 				Any("headers", c.Request().Header).
+				Str("method", c.Request().Method).
 				Str("url", c.Request().URL.String()).
 				Str("ip", ip).
 				Logger()
@@ -139,6 +140,7 @@ func proxy(target config.Target) echo.HandlerFunc {
 		}
 		log := apm.Log(c.Request().Context()).With().
 			Any("headers", c.Request().Header).
+			Str("method", c.Request().Method).
 			Str("url", c.Request().URL.String()).
 			Str("target", dst.String()).
 			Str("ip", c.RealIP()).
