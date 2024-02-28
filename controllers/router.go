@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	trustedIPs map[string]bool
-	allowedUAs map[string]bool
-	cacheOK    *expirable.LRU[string, bool]
-	cacheNOK   *expirable.LRU[string, bool]
+	trustedIPs    map[string]bool
+	allowedUAs    map[string]bool
+	cacheOK       *expirable.LRU[string, bool]
+	cacheNOK      *expirable.LRU[string, bool]
+	httpTransport http.RoundTripper
 )
 
 func initAuth(allowed config.Allowed) {
@@ -40,6 +41,7 @@ func initAuth(allowed config.Allowed) {
 
 // ConfigureRouter configures echo router
 func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, allowed config.Allowed) {
+	httpTransport = apm.WrapRoundTripper(http.DefaultTransport)
 	initAuth(allowed)
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
@@ -148,6 +150,7 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 
 func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		src := *c.Request().URL
 		dst := &url.URL{
 			Scheme: target.Scheme,
 			Host:   target.Host,
@@ -161,11 +164,16 @@ func proxy(target config.Target) echo.HandlerFunc {
 			Logger()
 		log.Info().Msg("proxying")
 		proxy := httputil.ReverseProxy{
-			Transport: apm.WrapRoundTripper(http.DefaultTransport),
+			Transport: httpTransport,
 			Rewrite: func(r *httputil.ProxyRequest) {
 				r.SetURL(dst)
 				r.Out.Host = target.Host
 				log.Debug().Str("dst", r.Out.URL.String()).Msg("rewriting")
+			},
+			ModifyResponse: func(r *http.Response) error {
+				r.Request.Host = src.Host
+				r.Request.URL = &src
+				return nil
 			},
 		}
 		proxy.ServeHTTP(c.Response(), c.Request())
