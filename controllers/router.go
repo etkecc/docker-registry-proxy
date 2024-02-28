@@ -143,13 +143,13 @@ func proxy(target config.Target) echo.HandlerFunc {
 			Host:   target.Host,
 		}
 		log := apm.Log(c.Request().Context()).With().Str("src", src.String()).Str("dst", dst.String()).Logger()
-
+		log.Debug().Msg("proxying")
 		proxy := httputil.ReverseProxy{
 			Transport: apm.WrapRoundTripper(http.DefaultTransport),
 			Rewrite: func(r *httputil.ProxyRequest) {
 				r.SetURL(dst)
 				r.Out.Host = target.Host
-				log.Debug().Str("dst", r.Out.URL.String()).Msg("proxying")
+				log.Debug().Str("dst", r.Out.URL.String()).Msg("rewriting")
 			},
 		}
 		proxy.ServeHTTP(c.Response(), c.Request())
