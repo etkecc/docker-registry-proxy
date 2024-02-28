@@ -151,6 +151,8 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		src := *c.Request().URL
+		src.Host = c.Request().Host
+		srcHostHeader := c.Request().Header.Get("Host")
 		dst := &url.URL{
 			Scheme: target.Scheme,
 			Host:   target.Host,
@@ -171,6 +173,20 @@ func proxy(target config.Target) echo.HandlerFunc {
 				log.Debug().Str("dst", r.Out.URL.String()).Msg("rewriting")
 			},
 			ModifyResponse: func(r *http.Response) error {
+				// rewrite location header if needed
+				if location := r.Header.Get("Location"); location != "" {
+					locationURL, err := url.Parse(location)
+					if err == nil && locationURL.Host == target.Host {
+						locationURL.Host = src.Host
+						log.Debug().Str("original", location).Str("new", locationURL.String()).Msg("rewriting location")
+					}
+					r.Header.Set("Location", locationURL.String())
+				}
+				// ensure host header is set to original
+				r.Header.Set("Host", srcHostHeader)
+
+				// ensure request is set to original
+				r.Request.Header.Set("Host", srcHostHeader)
 				r.Request.Host = src.Host
 				r.Request.URL = &src
 				return nil
