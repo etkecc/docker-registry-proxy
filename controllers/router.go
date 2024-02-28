@@ -69,7 +69,7 @@ func authCheap(ip string, log *zerolog.Logger) bool {
 		return true
 	}
 	if cacheNOK.Contains(ip) {
-		log.Debug().Msg("NOK cache hit")
+		log.Info().Str("reason", "cached NOK").Msg("rejected")
 		return false
 	}
 	return false
@@ -84,7 +84,7 @@ func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) 
 	targets, err := psdc.GetWithContext(c.Request().Context(), ip)
 	if err != nil {
 		if strings.Contains(err.Error(), "410 Gone") {
-			log.Debug().Msg("No targets")
+			log.Info().Str("reason", "no targets").Msg("rejected")
 			cacheNOK.Add(ip, true)
 			return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
 		}
@@ -93,7 +93,7 @@ func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) 
 	}
 	// if no targets, add IP to NOK cache and return 402
 	if len(targets) == 0 {
-		log.Debug().Msg("No targets")
+		log.Info().Str("reason", "no targets").Msg("rejected")
 		cacheNOK.Add(ip, true)
 		return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
 	}
