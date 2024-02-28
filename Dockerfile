@@ -6,6 +6,6 @@ RUN just build
 
 FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /app/psd /bin/psd
+COPY --from=builder /app/iap /bin/iap
 USER app
-ENTRYPOINT ["/bin/psd"]
+ENTRYPOINT ["/bin/iap"]

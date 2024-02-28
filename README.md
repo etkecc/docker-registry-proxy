@@ -16,4 +16,4 @@ env:
 * **IAP_PSD_PASSWORD** - PSD password
 * **IAP_TARGET_SCHEME** - target scheme
 * **IAP_TARGET_HOST** - target host
-* **IAP_TRUSTED_IPS** - static list of trusted ips, space separated
+* **IAP_TRUSTEDIPS** - static list of trusted ips, space separated
