@@ -74,16 +74,18 @@ func authCheap(ip string, log *zerolog.Logger) bool {
 		log.Debug().Msg("OK cache hit")
 		return true
 	}
-	if cacheNOK.Contains(ip) {
-		log.Info().Str("reason", "cached NOK").Msg("rejected")
-		return false
-	}
 	return false
 }
 
 func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) (bool, *echo.HTTPError) {
+	if cacheNOK.Contains(ip) {
+		log.Info().Str("reason", "cached NOK").Msg("rejected")
+		return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
+	}
+
 	if !allowedUAs[useragent.Parse(c.Request().UserAgent()).Name] {
 		log.Info().Str("reason", "UA name is not allowed").Msg("rejected")
+		return false, echo.NewHTTPError(http.StatusForbidden, "Forbidden")
 	}
 
 	// check PSD
@@ -95,7 +97,6 @@ func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) 
 	if err != nil {
 		if strings.Contains(err.Error(), "410 Gone") {
 			log.Info().Str("reason", "no targets").Msg("rejected")
-			cacheNOK.Add(ip, true)
 			return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
 		}
 		log.Error().Err(err).Msg("Failed to get targets")
@@ -104,13 +105,10 @@ func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) 
 	// if no targets, add IP to NOK cache and return 402
 	if len(targets) == 0 {
 		log.Info().Str("reason", "no targets").Msg("rejected")
-		cacheNOK.Add(ip, true)
 		return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
 	}
 
 	log.Debug().Int("targets", len(targets)).Msg("Targets found")
-	// add IP to OK cache and pass the request
-	cacheOK.Add(ip, true)
 	return true, nil
 }
 
@@ -130,14 +128,20 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get real IP")
 			}
 
+			// cheap auth - i.e., trusted, cached, etc.
 			if authCheap(ip, &log) {
 				return next(c)
 			}
+
+			// full auth - i.e., UA, PSD, etc.
 			ok, err := authFull(c, ip, psdc, &log)
-			if ok {
-				return next(c)
+			if !ok {
+				cacheNOK.Add(ip, true)
+				return err
 			}
-			return err
+
+			cacheOK.Add(ip, true)
+			return next(c)
 		}
 	}
 }
