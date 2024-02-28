@@ -8,6 +8,7 @@ require (
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/labstack/echo/v4 v4.11.4
+	github.com/mileusna/useragent v1.3.4
 	github.com/rs/zerolog v1.32.0
 	github.com/ziflex/lecho/v3 v3.5.0
 	gitlab.com/etke.cc/go/apm v1.0.1

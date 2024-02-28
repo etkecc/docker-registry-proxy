@@ -8,12 +8,17 @@ const prefix = "iap"
 
 // Config for IAP service
 type Config struct {
-	Port       string   // http port
-	LogLevel   string   // log level
-	SentryDSN  string   // sentry dsn
-	PSD        PSD      // PSD config
-	Target     Target   // target config
-	TrustedIPs []string // trusted ips
+	Port      string  // http port
+	LogLevel  string  // log level
+	SentryDSN string  // sentry dsn
+	PSD       PSD     // PSD config
+	Target    Target  // target config
+	Allowed   Allowed // allowed ips and user agents
+}
+
+type Allowed struct {
+	IPs []string // trusted IPs - requests from those IPS will be allowed
+	UAs []string // only those user agents' names will be allowed, all other will be rejected
 }
 
 type PSD struct {
@@ -44,6 +49,9 @@ func New() *Config {
 			Scheme: env.String("target.scheme"),
 			Host:   env.String("target.host"),
 		},
-		TrustedIPs: env.Slice("trustedips"),
+		Allowed: Allowed{
+			IPs: env.Slice("allowed.ips"),
+			UAs: env.Slice("allowed.uas"),
+		},
 	}
 }

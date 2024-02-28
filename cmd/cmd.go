@@ -44,7 +44,7 @@ func main() {
 	initShutdown(quit)
 	defer recovery()
 	psdc := psd.NewClient(cfg.PSD.URL, cfg.PSD.Login, cfg.PSD.Password)
-	controllers.ConfigureRouter(e, psdc, cfg.Target, cfg.TrustedIPs)
+	controllers.ConfigureRouter(e, psdc, cfg.Target, cfg.Allowed)
 
 	if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error().Err(err).Msg("http server failed")

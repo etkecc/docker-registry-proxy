@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/mileusna/useragent"
 	"github.com/rs/zerolog"
 	"gitlab.com/etke.cc/go/apm"
 	"gitlab.com/etke.cc/go/psd"
@@ -18,14 +19,19 @@ import (
 
 var (
 	trustedIPs map[string]bool
+	allowedUAs map[string]bool
 	cacheOK    *expirable.LRU[string, bool]
 	cacheNOK   *expirable.LRU[string, bool]
 )
 
-func initAuth(trusted []string) {
-	trustedIPs = make(map[string]bool, len(trusted))
-	for _, ip := range trusted {
+func initAuth(allowed config.Allowed) {
+	trustedIPs = make(map[string]bool, len(allowed.IPs))
+	for _, ip := range allowed.IPs {
 		trustedIPs[ip] = true
+	}
+	allowedUAs = make(map[string]bool, len(allowed.UAs))
+	for _, name := range allowed.UAs {
+		allowedUAs[name] = true
 	}
 
 	cacheOK = expirable.NewLRU[string, bool](1000, nil, 1*time.Hour)
@@ -33,8 +39,8 @@ func initAuth(trusted []string) {
 }
 
 // ConfigureRouter configures echo router
-func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, trusted []string) {
-	initAuth(trusted)
+func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, allowed config.Allowed) {
+	initAuth(allowed)
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
 	e.Use(apm.WithSentry())
@@ -76,6 +82,10 @@ func authCheap(ip string, log *zerolog.Logger) bool {
 }
 
 func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) (bool, *echo.HTTPError) {
+	if !allowedUAs[useragent.Parse(c.Request().UserAgent()).Name] {
+		log.Info().Str("reason", "UA name is not allowed").Msg("rejected")
+	}
+
 	// check PSD
 	if psdc == nil {
 		log.Error().Msg("No PSD client")

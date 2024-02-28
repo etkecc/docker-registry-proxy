@@ -34,6 +34,9 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
+# github.com/mileusna/useragent v1.3.4
+## explicit; go 1.14
+github.com/mileusna/useragent
 # github.com/rs/zerolog v1.32.0
 ## explicit; go 1.15
 github.com/rs/zerolog
