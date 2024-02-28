@@ -35,14 +35,6 @@ func initAuth(trusted []string) {
 // ConfigureRouter configures echo router
 func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, trusted []string) {
 	initAuth(trusted)
-
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Skipper: func(c echo.Context) bool {
-			return c.Request().URL.Path == "/_health"
-		},
-		Format:           `${remote_ip} - - [${time_custom}] "${method} ${path} ${protocol}" ${status} ${bytes_out} "${referer}" "${user_agent}"` + "\n",
-		CustomTimeFormat: "2/Jan/2006:15:04:05 -0700",
-	}))
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
 	e.Use(apm.WithSentry())
