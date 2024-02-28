@@ -36,7 +36,7 @@ func main() {
 	log = apm.Log()
 
 	log.Info().Msg("#############################")
-	log.Info().Msg("PSD")
+	log.Info().Msg("Inventory Auth Proxy")
 	log.Info().Msg("#############################")
 
 	e = echo.New()
