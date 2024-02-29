@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -152,47 +153,33 @@ func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		src := *c.Request().URL
 		src.Host = c.Request().Host
-		srcHostHeader := c.Request().Header.Get("Host")
-		dst := &url.URL{
-			Scheme: target.Scheme,
-			Host:   target.Host,
-		}
 		log := apm.Log(c.Request().Context()).With().
-			Any("headers", c.Request().Header).
 			Str("method", c.Request().Method).
 			Str("url", c.Request().URL.String()).
-			Str("target", dst.String()).
 			Str("ip", c.RealIP()).
 			Logger()
-		log.Info().Msg("proxying")
-		proxy := httputil.ReverseProxy{
-			Transport: httpTransport,
-			Rewrite: func(r *httputil.ProxyRequest) {
-				r.SetURL(dst)
-				r.Out.Host = target.Host
-				log.Debug().Str("dst", r.Out.URL.String()).Msg("rewriting")
-			},
-			ModifyResponse: func(r *http.Response) error {
-				// rewrite location header if needed
-				if location := r.Header.Get("Location"); location != "" {
-					locationURL, err := url.Parse(location)
-					if err == nil && locationURL.Host == target.Host {
-						locationURL.Host = src.Host
-						log.Debug().Str("original", location).Str("new", locationURL.String()).Msg("rewriting location")
-					}
-					r.Header.Set("Location", locationURL.String())
-				}
-				// ensure host header is set to original
-				r.Header.Set("Host", srcHostHeader)
 
-				// ensure request is set to original
-				r.Request.Header.Set("Host", srcHostHeader)
-				r.Request.Host = src.Host
-				r.Request.URL = &src
-				return nil
-			},
+		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
+		proxy.FlushInterval = 100 * time.Millisecond
+		proxy.Transport = httpTransport
+		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+			bodyb, _ := io.ReadAll(r.Body) //nolint:errcheck // ignore error
+			log.Warn().Err(err).Str("body", string(bodyb)).Msg("failed")
+			http.Error(w, err.Error(), http.StatusBadGateway)
 		}
-		proxy.ServeHTTP(c.Response(), c.Request())
+		proxy.ModifyResponse = func(r *http.Response) error {
+			// rewrite location header if needed
+			if location := r.Header.Get("Location"); location != "" {
+				locationURL, err := url.Parse(location)
+				if err == nil && locationURL.Host == target.Host {
+					locationURL.Host = src.Host
+				}
+				r.Header.Set("Location", locationURL.String())
+			}
+			log.Info().Int("status", r.StatusCode).Msg("proxied")
+			return nil
+		}
+		proxy.ServeHTTP(c.Response().Writer, c.Request())
 		return nil
 	}
 }

@@ -75,7 +75,7 @@ func shutdown() {
 		return
 	}
 
-	log.Info().Msg("PSD has been stopped")
+	log.Info().Msg("IAP has been stopped")
 	os.Exit(0) //nolint:gocritic // doesn't matter
 }
 
