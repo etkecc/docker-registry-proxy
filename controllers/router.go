@@ -160,7 +160,6 @@ func proxy(target config.Target) echo.HandlerFunc {
 			Logger()
 
 		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
-		proxy.FlushInterval = 100 * time.Millisecond
 		proxy.Transport = httpTransport
 		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 			bodyb, _ := io.ReadAll(r.Body) //nolint:errcheck // ignore error
