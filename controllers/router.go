@@ -21,9 +21,22 @@ import (
 var (
 	trustedIPs    map[string]bool
 	allowedUAs    map[string]bool
-	cacheOK       *expirable.LRU[string, bool]
+	cacheOK       *expirable.LRU[string, string]
 	cacheNOK      *expirable.LRU[string, bool]
 	httpTransport http.RoundTripper
+	// cacheableStatuses = map[int]bool{
+	// 	http.StatusOK:        true,
+	// 	http.StatusNoContent: true,
+	// }
+	// cacheableEndpoints = []*regexp.Regexp{
+	// 	regexp.MustCompile(`^GET /v2/$`),
+	// 	regexp.MustCompile(`^GET /v2/_catalog$`),
+	// 	regexp.MustCompile(`^GET /v2/_catalog\?n\=[0-9]*$`),
+	// 	regexp.MustCompile(`^GET /v2/.*/tags/list$`),
+	// 	regexp.MustCompile(`^GET /v2/.*/tags/list\?n\=[0-9]*$`),
+	// 	regexp.MustCompile(`^HEAD /v2/.*/manifests/.*$`),
+	// 	regexp.MustCompile(`^HEAD /v2/.*/blobs/sha256:[a-zA-Z0-9-_]*$`),
+	// }
 )
 
 func initAuth(allowed config.Allowed) {
@@ -36,7 +49,7 @@ func initAuth(allowed config.Allowed) {
 		allowedUAs[name] = true
 	}
 
-	cacheOK = expirable.NewLRU[string, bool](1000, nil, 1*time.Hour)
+	cacheOK = expirable.NewLRU[string, string](1000, nil, 1*time.Hour)
 	cacheNOK = expirable.NewLRU[string, bool](10000, nil, 1*time.Hour)
 }
 
@@ -80,39 +93,39 @@ func authCheap(ip string, log *zerolog.Logger) bool {
 	return false
 }
 
-func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) (bool, *echo.HTTPError) {
+func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) (string, *echo.HTTPError) {
 	if cacheNOK.Contains(ip) {
 		log.Info().Str("reason", "cached NOK").Msg("rejected")
-		return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
+		return "", echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
 	}
 
 	if !allowedUAs[useragent.Parse(c.Request().UserAgent()).Name] {
 		log.Info().Str("reason", "UA name is not allowed").Msg("rejected")
-		return false, echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+		return "", echo.NewHTTPError(http.StatusForbidden, "Forbidden")
 	}
 
 	// check PSD
 	if psdc == nil {
 		log.Error().Msg("No PSD client")
-		return false, echo.NewHTTPError(http.StatusInternalServerError, "Cannot authenticate")
+		return "", echo.NewHTTPError(http.StatusInternalServerError, "Cannot authenticate")
 	}
 	targets, err := psdc.GetWithContext(c.Request().Context(), ip)
 	if err != nil {
 		if strings.Contains(err.Error(), "410 Gone") {
 			log.Info().Str("reason", "no targets").Msg("rejected")
-			return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
+			return "", echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
 		}
 		log.Error().Err(err).Msg("Failed to get targets")
-		return false, echo.NewHTTPError(http.StatusInternalServerError, "Failed to authenticate")
+		return "", echo.NewHTTPError(http.StatusInternalServerError, "Failed to authenticate")
 	}
 	// if no targets, add IP to NOK cache and return 402
 	if len(targets) == 0 {
 		log.Info().Str("reason", "no targets").Msg("rejected")
-		return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
+		return "", echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
 	}
 
 	log.Debug().Int("targets", len(targets)).Msg("Targets found")
-	return true, nil
+	return targets[0].GetDomain(), nil
 }
 
 func auth(psdc *psd.Client) echo.MiddlewareFunc {
@@ -121,10 +134,10 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 			// get IP first
 			ip := c.RealIP()
 			log := apm.Log(c.Request().Context()).With().
-				Any("headers", c.Request().Header).
-				Str("method", c.Request().Method).
-				Str("url", c.Request().URL.String()).
-				Str("ip", ip).
+				Any("req.headers", c.Request().Header).
+				Str("req.method", c.Request().Method).
+				Str("req.url", c.Request().URL.String()).
+				Str("from.ip", ip).
 				Logger()
 			if ip == "" {
 				log.Error().Msg("Failed to get client IP")
@@ -137,13 +150,13 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 			}
 
 			// full auth - i.e., UA, PSD, etc.
-			ok, err := authFull(c, ip, psdc, &log)
-			if !ok {
+			host, err := authFull(c, ip, psdc, &log)
+			if host == "" {
 				cacheNOK.Add(ip, true)
 				return err
 			}
 
-			cacheOK.Add(ip, true)
+			cacheOK.Add(ip, host)
 			return next(c)
 		}
 	}
@@ -153,17 +166,19 @@ func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		src := *c.Request().URL
 		src.Host = c.Request().Host
+		authorizedHost, _ := cacheOK.Get(c.RealIP())
 		log := apm.Log(c.Request().Context()).With().
-			Str("method", c.Request().Method).
-			Str("url", c.Request().URL.String()).
-			Str("ip", c.RealIP()).
+			Str("req.method", c.Request().Method).
+			Str("req.url", c.Request().URL.String()).
+			Str("from.ip", c.RealIP()).
+			Str("from.host", authorizedHost).
 			Logger()
 
 		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
 		proxy.Transport = httpTransport
 		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 			bodyb, _ := io.ReadAll(r.Body) //nolint:errcheck // ignore error
-			log.Warn().Err(err).Str("body", string(bodyb)).Msg("failed")
+			log.Warn().Err(err).Str("resp.body", string(bodyb)).Msg("failed")
 			http.Error(w, err.Error(), http.StatusBadGateway)
 		}
 		proxy.ModifyResponse = func(r *http.Response) error {
@@ -175,7 +190,7 @@ func proxy(target config.Target) echo.HandlerFunc {
 				}
 				r.Header.Set("Location", locationURL.String())
 			}
-			log.Info().Int("status", r.StatusCode).Msg("proxied")
+			log.Info().Int("resp.status", r.StatusCode).Msg("proxied")
 			return nil
 		}
 		proxy.ServeHTTP(c.Response().Writer, c.Request())
