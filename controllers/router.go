@@ -11,8 +11,10 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gitlab.com/etke.cc/go/apm"
+	echobasicauth "gitlab.com/etke.cc/go/echo-basic-auth"
 	"gitlab.com/etke.cc/go/psd"
 	"gitlab.com/etke.cc/int/iap/config"
+	"gitlab.com/etke.cc/int/iap/metrics"
 )
 
 var (
@@ -38,7 +40,7 @@ func initAuth(allowed config.Allowed) {
 }
 
 // ConfigureRouter configures echo router
-func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, allowed config.Allowed) {
+func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, psdc *psd.Client, target config.Target, allowed config.Allowed) {
 	httpTransport = apm.WrapRoundTripper(http.DefaultTransport)
 	cacheHTTP = expirable.NewLRU[string, cacheableResponse](1000, nil, 1*time.Hour)
 	initAuth(allowed)
@@ -57,11 +59,22 @@ func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, allow
 		echo.TrustLinkLocal(true),
 		echo.TrustPrivateNet(true),
 	)
+	metricsAuthMiddleware := echobasicauth.NewMiddleware(metricsAuth)
 	e.GET("/_health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
+	e.GET("/metrics", echo.WrapHandler(&metrics.Handler{}), metricsAuthMiddleware)
 
-	e.Any("*", proxy(target), auth(psdc), cache())
+	e.Any("*", proxy(target), auth(psdc), countRequest(), cache())
+}
+
+func countRequest() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			go metrics.Request(c.Request().Method, c.Request().URL.Path)
+			return next(c)
+		}
+	}
 }
 
 func proxy(target config.Target) echo.HandlerFunc {

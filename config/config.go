@@ -1,6 +1,7 @@
 package config
 
 import (
+	echobasicauth "gitlab.com/etke.cc/go/echo-basic-auth"
 	"gitlab.com/etke.cc/go/env"
 )
 
@@ -8,12 +9,13 @@ const prefix = "iap"
 
 // Config for IAP service
 type Config struct {
-	Port      string  // http port
-	LogLevel  string  // log level
-	SentryDSN string  // sentry dsn
-	PSD       PSD     // PSD config
-	Target    Target  // target config
-	Allowed   Allowed // allowed ips and user agents
+	Port      string              // http port
+	LogLevel  string              // log level
+	SentryDSN string              // sentry dsn
+	PSD       PSD                 // PSD config
+	Target    Target              // target config
+	Allowed   Allowed             // allowed ips and user agents
+	Metrics   *echobasicauth.Auth // metrics basic auth
 }
 
 type Allowed struct {
@@ -44,6 +46,11 @@ func New() *Config {
 			URL:      env.String("psd.url"),
 			Login:    env.String("psd.login"),
 			Password: env.String("psd.password"),
+		},
+		Metrics: &echobasicauth.Auth{
+			Login:    env.String("metrics.login"),
+			Password: env.String("metrics.password"),
+			IPs:      env.Slice("metrics.ips"),
 		},
 		Target: Target{
 			Scheme: env.String("target.scheme"),

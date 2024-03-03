@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/labstack/echo/v4"
+	"gitlab.com/etke.cc/int/iap/metrics"
 )
 
 var (
@@ -142,6 +143,7 @@ func cache() echo.MiddlewareFunc {
 			}
 
 			if returnCached(c, cachekey) {
+				go metrics.Cache(true)
 				return nil
 			}
 
@@ -154,6 +156,7 @@ func cache() echo.MiddlewareFunc {
 			}
 
 			if cacheResponse(c, rec, cachekey) {
+				go metrics.Cache(false)
 				log.Debug().Msg("caching")
 			} else {
 				log.Debug().Msg("not cacheable status")

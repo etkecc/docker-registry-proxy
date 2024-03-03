@@ -14,6 +14,9 @@ env:
 * **IAP_PSD_URL** - PSD url
 * **IAP_PSD_LOGIN** - PSD login
 * **IAP_PSD_PASSWORD** - PSD password
+* **IAP_METRICS_LOGIN** - metrics login
+* **IAP_METRICS_PASSWORD** - metrics password
+* **IAP_METRICS_IPS** - metrics ips, space separated
 * **IAP_TARGET_SCHEME** - target scheme
 * **IAP_TARGET_HOST** - target host
 * **IAP_ALLOWED_IPS** - static list of trusted ips, space separated

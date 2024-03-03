@@ -8,6 +8,7 @@ import (
 	"github.com/mileusna/useragent"
 	"github.com/rs/zerolog"
 	"gitlab.com/etke.cc/go/psd"
+	"gitlab.com/etke.cc/int/iap/metrics"
 )
 
 func auth(psdc *psd.Client) echo.MiddlewareFunc {
@@ -18,20 +19,24 @@ func auth(psdc *psd.Client) echo.MiddlewareFunc {
 			ip := c.RealIP()
 			if ip == "" {
 				log.Error().Msg("Failed to get client IP")
+				go metrics.Auth(false)
 				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get real IP")
 			}
 
 			// cheap auth - i.e., trusted, cached, etc.
 			if authCheap(c, ip, log) {
+				go metrics.Auth(true)
 				return next(c)
 			}
 
 			// full auth - i.e., UA, PSD, etc.
 			if ok, err := authFull(c, ip, psdc, log); !ok {
+				go metrics.Auth(false)
 				cacheNOK.Add(ip, true)
 				return err
 			}
 
+			go metrics.Auth(true)
 			cacheOK.Add(ip, c.Get("host").(string)) //nolint:forcetypeassert // we know it's a string
 			return next(c)
 		}
