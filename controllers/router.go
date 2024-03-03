@@ -5,14 +5,11 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/mileusna/useragent"
-	"github.com/rs/zerolog"
 	"gitlab.com/etke.cc/go/apm"
 	"gitlab.com/etke.cc/go/psd"
 	"gitlab.com/etke.cc/int/iap/config"
@@ -24,19 +21,6 @@ var (
 	cacheOK       *expirable.LRU[string, string]
 	cacheNOK      *expirable.LRU[string, bool]
 	httpTransport http.RoundTripper
-	// cacheableStatuses = map[int]bool{
-	// 	http.StatusOK:        true,
-	// 	http.StatusNoContent: true,
-	// }
-	// cacheableEndpoints = []*regexp.Regexp{
-	// 	regexp.MustCompile(`^GET /v2/$`),
-	// 	regexp.MustCompile(`^GET /v2/_catalog$`),
-	// 	regexp.MustCompile(`^GET /v2/_catalog\?n\=[0-9]*$`),
-	// 	regexp.MustCompile(`^GET /v2/.*/tags/list$`),
-	// 	regexp.MustCompile(`^GET /v2/.*/tags/list\?n\=[0-9]*$`),
-	// 	regexp.MustCompile(`^HEAD /v2/.*/manifests/.*$`),
-	// 	regexp.MustCompile(`^HEAD /v2/.*/blobs/sha256:[a-zA-Z0-9-_]*$`),
-	// }
 )
 
 func initAuth(allowed config.Allowed) {
@@ -56,6 +40,7 @@ func initAuth(allowed config.Allowed) {
 // ConfigureRouter configures echo router
 func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, allowed config.Allowed) {
 	httpTransport = apm.WrapRoundTripper(http.DefaultTransport)
+	cacheHTTP = expirable.NewLRU[string, cacheableResponse](1000, nil, 1*time.Hour)
 	initAuth(allowed)
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
@@ -76,103 +61,15 @@ func ConfigureRouter(e *echo.Echo, psdc *psd.Client, target config.Target, allow
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	e.Any("*", proxy(target), auth(psdc))
-}
-
-// authCheap is a cheap way to validate request auth
-// from trusted IPs or cache
-func authCheap(ip string, log *zerolog.Logger) bool {
-	if trustedIPs[ip] {
-		log.Debug().Msg("Trusted IP")
-		return true
-	}
-	if cacheOK.Contains(ip) {
-		log.Debug().Msg("OK cache hit")
-		return true
-	}
-	return false
-}
-
-func authFull(c echo.Context, ip string, psdc *psd.Client, log *zerolog.Logger) (string, *echo.HTTPError) {
-	if cacheNOK.Contains(ip) {
-		log.Info().Str("reason", "cached NOK").Msg("rejected")
-		return "", echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
-	}
-
-	if !allowedUAs[useragent.Parse(c.Request().UserAgent()).Name] {
-		log.Info().Str("reason", "UA name is not allowed").Msg("rejected")
-		return "", echo.NewHTTPError(http.StatusForbidden, "Forbidden")
-	}
-
-	// check PSD
-	if psdc == nil {
-		log.Error().Msg("No PSD client")
-		return "", echo.NewHTTPError(http.StatusInternalServerError, "Cannot authenticate")
-	}
-	targets, err := psdc.GetWithContext(c.Request().Context(), ip)
-	if err != nil {
-		if strings.Contains(err.Error(), "410 Gone") {
-			log.Info().Str("reason", "no targets").Msg("rejected")
-			return "", echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
-		}
-		log.Error().Err(err).Msg("Failed to get targets")
-		return "", echo.NewHTTPError(http.StatusInternalServerError, "Failed to authenticate")
-	}
-	// if no targets, add IP to NOK cache and return 402
-	if len(targets) == 0 {
-		log.Info().Str("reason", "no targets").Msg("rejected")
-		return "", echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
-	}
-
-	log.Debug().Int("targets", len(targets)).Msg("Targets found")
-	return targets[0].GetDomain(), nil
-}
-
-func auth(psdc *psd.Client) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// get IP first
-			ip := c.RealIP()
-			log := apm.Log(c.Request().Context()).With().
-				Any("req.headers", c.Request().Header).
-				Str("req.method", c.Request().Method).
-				Str("req.url", c.Request().URL.String()).
-				Str("from.ip", ip).
-				Logger()
-			if ip == "" {
-				log.Error().Msg("Failed to get client IP")
-				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get real IP")
-			}
-
-			// cheap auth - i.e., trusted, cached, etc.
-			if authCheap(ip, &log) {
-				return next(c)
-			}
-
-			// full auth - i.e., UA, PSD, etc.
-			host, err := authFull(c, ip, psdc, &log)
-			if host == "" {
-				cacheNOK.Add(ip, true)
-				return err
-			}
-
-			cacheOK.Add(ip, host)
-			return next(c)
-		}
-	}
+	e.Any("*", proxy(target), auth(psdc), cache())
 }
 
 func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		src := *c.Request().URL
 		src.Host = c.Request().Host
-		authorizedHost, _ := cacheOK.Get(c.RealIP())
-		log := apm.Log(c.Request().Context()).With().
-			Str("req.method", c.Request().Method).
-			Str("req.url", c.Request().URL.String()).
-			Str("from.ip", c.RealIP()).
-			Str("from.host", authorizedHost).
-			Logger()
+		log := ctxLog(c)
+		c.Request().Host = target.Host
 
 		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
 		proxy.Transport = httpTransport
@@ -190,7 +87,11 @@ func proxy(target config.Target) echo.HandlerFunc {
 				}
 				r.Header.Set("Location", locationURL.String())
 			}
-			log.Info().Int("resp.status", r.StatusCode).Msg("proxied")
+			c.Set("resp.status", r.StatusCode)
+			log.Info().
+				Int("resp.status", r.StatusCode).
+				Str("req.url", r.Request.URL.String()).
+				Msg("proxied")
 			return nil
 		}
 		proxy.ServeHTTP(c.Response().Writer, c.Request())
