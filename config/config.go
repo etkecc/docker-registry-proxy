@@ -14,13 +14,20 @@ type Config struct {
 	SentryDSN string              // sentry dsn
 	PSD       PSD                 // PSD config
 	Target    Target              // target config
-	Allowed   Allowed             // allowed ips and user agents
+	Allowed   Allowed             // allowed ips and user agents (GET, HEAD, OPTIONS requests only)
+	Trusted   Trusted             // trusted ips (PATCH, POST, PUT, DELETE requests)
 	Metrics   *echobasicauth.Auth // metrics basic auth
 }
 
+// Allowed config (GET, HEAD, OPTIONS requests only)
 type Allowed struct {
-	IPs []string // trusted IPs - requests from those IPS will be allowed
+	IPs []string // static list of allowed IPs - requests from those IPS will be allowed
 	UAs []string // only those user agents' names will be allowed, all other will be rejected
+}
+
+// Trusted config (PATCH, POST, PUT, DELETE requests)
+type Trusted struct {
+	IPs []string // static list of trusted IPs - requests from those IPS will be allowed
 }
 
 type PSD struct {
@@ -59,6 +66,9 @@ func New() *Config {
 		Allowed: Allowed{
 			IPs: env.Slice("allowed.ips"),
 			UAs: env.Slice("allowed.uas"),
+		},
+		Trusted: Trusted{
+			IPs: env.Slice("trusted.ips"),
 		},
 	}
 }

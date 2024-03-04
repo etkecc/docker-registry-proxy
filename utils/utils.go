@@ -1,4 +1,4 @@
-package controllers
+package utils
 
 import (
 	"github.com/labstack/echo/v4"
@@ -6,7 +6,17 @@ import (
 	"gitlab.com/etke.cc/go/apm"
 )
 
-func ctxLog(c echo.Context) *zerolog.Logger {
+// NewMap creates a map from a slice of keys to a single value.
+func NewMap[T comparable, V any](slice []T, value V) map[T]V {
+	m := make(map[T]V, len(slice))
+	for _, k := range slice {
+		m[k] = value
+	}
+	return m
+}
+
+// NewLog creates a new logger with context from echo.Context
+func NewLog(c echo.Context) *zerolog.Logger {
 	var host string
 	if authorizedHost, ok := c.Get("host").(string); ok {
 		host = authorizedHost

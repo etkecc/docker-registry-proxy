@@ -2,10 +2,10 @@ package metrics
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/VictoriaMetrics/metrics"
+	"github.com/labstack/echo/v4"
 )
 
 var (
@@ -30,11 +30,22 @@ var (
 	}
 )
 
-// Handler for metrics
-type Handler struct{}
+// Handler returns an echo handler that writes prometheus metrics to the response
+func Handler() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		metrics.WritePrometheus(c.Response(), false)
+		return nil
+	}
+}
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	metrics.WritePrometheus(w, false)
+// Middleware returns an echo middleware that increments the total requests counter and the specific method counter
+func Middleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			go Request(c.Request().Method, c.Request().URL.Path)
+			return next(c)
+		}
+	}
 }
 
 func extractName(reqURL string) string {

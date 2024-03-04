@@ -1,4 +1,4 @@
-# Inventory Auth Proxy
+# Docker Registry Inventory Auth Proxy
 
 internal etke.cc service, not usable for any other purposes.
 
@@ -19,5 +19,7 @@ env:
 * **IAP_METRICS_IPS** - metrics ips, space separated
 * **IAP_TARGET_SCHEME** - target scheme
 * **IAP_TARGET_HOST** - target host
-* **IAP_ALLOWED_IPS** - static list of trusted ips, space separated
-* **IAP_ALLOWED_UAS** - static list of allowed user agents, space separated
+* **IAP_ALLOWED_IPS** - static list of allowed ips, space separated (GET, HEAD, OPTIONS requests)
+* **IAP_ALLOWED_UAS** - static list of allowed user agents, space separated (GET, HEAD, OPTIONS requests)
+* **IAP_TRUSTED_IPS** - static list of trusted ips, space separated (PATCH, POST, PUT, DELETE requests)
+

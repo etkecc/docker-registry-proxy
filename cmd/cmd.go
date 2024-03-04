@@ -18,6 +18,7 @@ import (
 	"gitlab.com/etke.cc/go/psd"
 	"gitlab.com/etke.cc/int/iap/config"
 	"gitlab.com/etke.cc/int/iap/controllers"
+	"gitlab.com/etke.cc/int/iap/services"
 )
 
 var (
@@ -44,7 +45,9 @@ func main() {
 	initShutdown(quit)
 	defer recovery()
 	psdc := psd.NewClient(cfg.PSD.URL, cfg.PSD.Login, cfg.PSD.Password)
-	controllers.ConfigureRouter(e, cfg.Metrics, psdc, cfg.Target, cfg.Allowed)
+	authSvc := services.NewAuth(cfg.Allowed.IPs, cfg.Allowed.UAs, cfg.Trusted.IPs, psdc)
+	cacheSvc := services.NewCache()
+	controllers.ConfigureRouter(e, cfg.Metrics, authSvc, cacheSvc, cfg.Target)
 
 	if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error().Err(err).Msg("http server failed")

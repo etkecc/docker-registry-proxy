@@ -5,45 +5,25 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"time"
 
-	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gitlab.com/etke.cc/go/apm"
 	echobasicauth "gitlab.com/etke.cc/go/echo-basic-auth"
-	"gitlab.com/etke.cc/go/psd"
 	"gitlab.com/etke.cc/int/iap/config"
 	"gitlab.com/etke.cc/int/iap/metrics"
+	"gitlab.com/etke.cc/int/iap/utils"
 )
 
-var (
-	trustedIPs    map[string]bool
-	allowedUAs    map[string]bool
-	cacheOK       *expirable.LRU[string, string]
-	cacheNOK      *expirable.LRU[string, bool]
-	httpTransport http.RoundTripper
-)
+var httpTransport http.RoundTripper
 
-func initAuth(allowed config.Allowed) {
-	trustedIPs = make(map[string]bool, len(allowed.IPs))
-	for _, ip := range allowed.IPs {
-		trustedIPs[ip] = true
-	}
-	allowedUAs = make(map[string]bool, len(allowed.UAs))
-	for _, name := range allowed.UAs {
-		allowedUAs[name] = true
-	}
-
-	cacheOK = expirable.NewLRU[string, string](1000, nil, 1*time.Hour)
-	cacheNOK = expirable.NewLRU[string, bool](10000, nil, 1*time.Hour)
+type echoService interface {
+	Middleware() echo.MiddlewareFunc
 }
 
 // ConfigureRouter configures echo router
-func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, psdc *psd.Client, target config.Target, allowed config.Allowed) {
+func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cacheSvc echoService, target config.Target) {
 	httpTransport = apm.WrapRoundTripper(http.DefaultTransport)
-	cacheHTTP = expirable.NewLRU[string, cacheableResponse](1000, nil, 1*time.Hour)
-	initAuth(allowed)
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
 	e.Use(apm.WithSentry())
@@ -63,25 +43,16 @@ func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, psdc *psd.Cl
 	e.GET("/_health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
-	e.GET("/metrics", echo.WrapHandler(&metrics.Handler{}), metricsAuthMiddleware)
+	e.GET("/metrics", metrics.Handler(), metricsAuthMiddleware)
 
-	e.Any("*", proxy(target), auth(psdc), countRequest(), cache())
-}
-
-func countRequest() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			go metrics.Request(c.Request().Method, c.Request().URL.Path)
-			return next(c)
-		}
-	}
+	e.Any("*", proxy(target), authSvc.Middleware(), metrics.Middleware(), cacheSvc.Middleware())
 }
 
 func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		src := *c.Request().URL
 		src.Host = c.Request().Host
-		log := ctxLog(c)
+		log := utils.NewLog(c)
 		c.Request().Host = target.Host
 
 		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
