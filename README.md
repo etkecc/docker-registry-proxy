@@ -1,8 +1,8 @@
-# Docker Registry Inventory Auth Proxy
+# Docker Registry Proxy
 
 internal etke.cc service, not usable for any other purposes.
 
-Pass-through proxy using [PSD](https://gitlab.com/etke.cc/psd) as info provider
+Pass-through proxy with metadata caching and authentication via [PSD](https://gitlab.com/etke.cc/psd).
 
 ## Config
 

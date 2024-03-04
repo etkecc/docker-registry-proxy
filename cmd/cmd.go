@@ -37,7 +37,7 @@ func main() {
 	log = apm.Log()
 
 	log.Info().Msg("#############################")
-	log.Info().Msg("Inventory Auth Proxy")
+	log.Info().Msg("Docker Registry Proxy")
 	log.Info().Msg("#############################")
 
 	e = echo.New()
@@ -78,7 +78,7 @@ func shutdown() {
 		return
 	}
 
-	log.Info().Msg("IAP has been stopped")
+	log.Info().Msg("Docker Registry Proxy has been stopped")
 	os.Exit(0) //nolint:gocritic // doesn't matter
 }
 
