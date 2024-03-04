@@ -83,6 +83,7 @@ func isEnpointCacheable(c echo.Context) bool {
 
 func returnCached(c echo.Context, cachekey string) bool {
 	if cached, ok := cacheHTTP.Get(cachekey); ok {
+		c.Set("cache.hit", true)
 		resp := cached.Response() //nolint:bodyclose // it's io.NopCloser
 		resp.Header.Set("X-Cache", "HIT")
 		for k := range resp.Header {

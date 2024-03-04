@@ -16,13 +16,27 @@ func ctxLog(c echo.Context) *zerolog.Logger {
 		cachekey = cacheKey
 	}
 
-	log := apm.Log(c.Request().Context()).With().
+	var cached bool
+	if _, ok := c.Get("cache.hit").(bool); ok {
+		cached = true
+	}
+
+	logCtx := apm.Log(c.Request().Context()).With().
 		Str("req.method", c.Request().Method).
 		Str("req.url", c.Request().URL.String()).
 		Any("req.headers", c.Request().Header).
-		Str("from.ip", c.RealIP()).
-		Str("from.host", host).
-		Str("cache.key", cachekey).
-		Logger()
+		Str("from.ip", c.RealIP())
+
+	if host != "" {
+		logCtx = logCtx.Str("from.host", host)
+	}
+	if cachekey != "" {
+		logCtx = logCtx.Str("cache.key", cachekey)
+	}
+	if cached {
+		logCtx = logCtx.Bool("cache.hit", true)
+	}
+
+	log := logCtx.Logger()
 	return &log
 }

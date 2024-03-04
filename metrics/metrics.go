@@ -40,18 +40,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 func extractName(reqURL string) string {
 	imageParts := []string{}
 	reqURL = strings.TrimPrefix(reqURL, "/v2/")
-	var isManifest bool
+	var withManifest bool
 	parts := strings.Split(reqURL, "/")
 	for _, part := range parts {
 		if suffixes[part] {
 			break
 		}
 		if part == "manifests" {
-			isManifest = true
+			withManifest = true
 			continue
 		}
 
-		if isManifest {
+		if withManifest {
 			var tag string
 			if strings.HasPrefix(part, "sha256:") {
 				tag = "@" + part
@@ -64,6 +64,12 @@ func extractName(reqURL string) string {
 
 		imageParts = append(imageParts, part)
 	}
+
+	// if the request is not for a specific manifest, we don't want to count it
+	if !withManifest {
+		return ""
+	}
+
 	return strings.Join(imageParts, "/")
 }
 
