@@ -58,6 +58,12 @@ func proxy(target config.Target) echo.HandlerFunc {
 		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
 		proxy.Transport = httpTransport
 		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+			defer func() {
+				if rec := recover(); rec != nil {
+					log.Error().Interface("error", rec).Msg("recovering from panic in proxy error handler")
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				}
+			}()
 			bodyb, _ := io.ReadAll(r.Body) //nolint:errcheck // ignore error
 			log.Warn().Err(err).Str("resp.body", string(bodyb)).Msg("failed")
 			http.Error(w, err.Error(), http.StatusBadGateway)
