@@ -38,16 +38,6 @@ func Handler() echo.HandlerFunc {
 	}
 }
 
-// Middleware returns an echo middleware that increments the total requests counter and the specific method counter
-func Middleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			go Request(c.Request().Method, c.Request().URL.Path)
-			return next(c)
-		}
-	}
-}
-
 func extractName(reqURL string) string {
 	imageParts := []string{}
 	reqURL = strings.TrimPrefix(reqURL, "/v2/")

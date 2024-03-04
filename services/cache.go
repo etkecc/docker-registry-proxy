@@ -59,6 +59,7 @@ func NewCache() *Cache {
 func (cache *Cache) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			go metrics.Request(c.Request().Method, c.Request().URL.Path)
 			cachekey := cache.key(c)
 			c.Set("cache.key", cachekey)
 			cacheable := isCacheable(c)

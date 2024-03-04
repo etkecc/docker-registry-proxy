@@ -45,7 +45,7 @@ func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cac
 	})
 	e.GET("/metrics", metrics.Handler(), metricsAuthMiddleware)
 
-	e.Any("*", proxy(target), authSvc.Middleware(), metrics.Middleware(), cacheSvc.Middleware())
+	e.Any("*", proxy(target), authSvc.Middleware(), cacheSvc.Middleware())
 }
 
 func proxy(target config.Target) echo.HandlerFunc {
