@@ -25,9 +25,8 @@ var (
 		"_catalog": true,
 	}
 	suffixes = map[string]bool{
-		"blobs":     true,
-		"manifests": true,
-		"tags":      true,
+		"blobs": true,
+		"tags":  true,
 	}
 )
 
@@ -41,11 +40,28 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 func extractName(reqURL string) string {
 	imageParts := []string{}
 	reqURL = strings.TrimPrefix(reqURL, "/v2/")
+	var isManifest bool
 	parts := strings.Split(reqURL, "/")
 	for _, part := range parts {
 		if suffixes[part] {
 			break
 		}
+		if part == "manifests" {
+			isManifest = true
+			continue
+		}
+
+		if isManifest {
+			var tag string
+			if strings.HasPrefix(part, "sha256:") {
+				tag = "@" + part
+			} else {
+				tag = ":" + part
+			}
+			imageParts[len(imageParts)-1] = imageParts[len(imageParts)-1] + tag
+			continue
+		}
+
 		imageParts = append(imageParts, part)
 	}
 	return strings.Join(imageParts, "/")
