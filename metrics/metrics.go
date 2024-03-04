@@ -53,13 +53,11 @@ func extractName(reqURL string) string {
 		}
 
 		if withManifest {
-			var tag string
-			if strings.HasPrefix(part, "sha256:") {
-				tag = "@" + part
-			} else {
-				tag = ":" + part
+			if strings.HasPrefix(part, "sha256:") { // we don't want to count specific blobs, only tags
+				return ""
 			}
-			imageParts[len(imageParts)-1] = imageParts[len(imageParts)-1] + tag
+
+			imageParts[len(imageParts)-1] = imageParts[len(imageParts)-1] + ":" + part
 			continue
 		}
 
