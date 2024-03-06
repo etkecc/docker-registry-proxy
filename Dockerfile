@@ -6,6 +6,6 @@ RUN just build
 
 FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /app/drp /bin/docker-registry-proxy
+COPY --from=builder /app/docker-registry-proxy /bin/docker-registry-proxy
 USER app
 ENTRYPOINT ["/bin/docker-registry-proxy"]
