@@ -44,9 +44,12 @@ func main() {
 	e.Logger = lecho.From(*log)
 	initShutdown(quit)
 	defer recovery()
-	psdc := psd.NewClient(cfg.PSD.URL, cfg.PSD.Login, cfg.PSD.Password)
-	authSvc := services.NewAuth(cfg.Allowed.IPs, cfg.Allowed.UAs, cfg.Trusted.IPs, psdc)
-	cacheSvc := services.NewCache()
+	var psdc *psd.Client
+	if cfg.PSD.URL != "" && cfg.PSD.Login != "" && cfg.PSD.Password != "" {
+		psdc = psd.NewClient(cfg.PSD.URL, cfg.PSD.Login, cfg.PSD.Password)
+	}
+	authSvc := services.NewAuth(cfg.Allowed.IPs, cfg.Allowed.UAs, cfg.Trusted.IPs, cfg.Cache.TTL, cfg.Cache.Size, psdc)
+	cacheSvc := services.NewCache(cfg.Cache.TTL, cfg.Cache.Size)
 	controllers.ConfigureRouter(e, cfg.Metrics, authSvc, cacheSvc, cfg.Target)
 
 	if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {

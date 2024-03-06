@@ -9,11 +9,12 @@ const prefix = "iap"
 
 // Config for IAP service
 type Config struct {
-	Port      string              // http port
-	LogLevel  string              // log level
-	SentryDSN string              // sentry dsn
-	PSD       PSD                 // PSD config
+	Port      string // http port
+	LogLevel  string // log level
+	SentryDSN string // sentry dsn
+	PSD       PSD
 	Target    Target              // target config
+	Cache     Cache               // cache config
 	Allowed   Allowed             // allowed ips and user agents (GET, HEAD, OPTIONS requests only)
 	Trusted   Trusted             // trusted ips (PATCH, POST, PUT, DELETE requests)
 	Metrics   *echobasicauth.Auth // metrics basic auth
@@ -30,15 +31,22 @@ type Trusted struct {
 	IPs []string // static list of trusted IPs - requests from those IPS will be allowed
 }
 
+// Cache config
+type Cache struct {
+	TTL  int // cache TTL in minutes
+	Size int // cache size
+}
+
+// Target (backend) config
+type Target struct {
+	Scheme string
+	Host   string
+}
+
 type PSD struct {
 	URL      string
 	Login    string
 	Password string
-}
-
-type Target struct {
-	Scheme string
-	Host   string
 }
 
 // New config
@@ -62,6 +70,10 @@ func New() *Config {
 		Target: Target{
 			Scheme: env.String("target.scheme"),
 			Host:   env.String("target.host"),
+		},
+		Cache: Cache{
+			TTL:  env.Int("cache.ttl", 60),
+			Size: env.Int("cache.size", 1000),
 		},
 		Allowed: Allowed{
 			IPs: env.Slice("allowed.ips"),

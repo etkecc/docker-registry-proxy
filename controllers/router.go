@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -8,9 +9,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog"
 	"gitlab.com/etke.cc/go/apm"
 	echobasicauth "gitlab.com/etke.cc/go/echo-basic-auth"
 	"gitlab.com/etke.cc/int/iap/config"
+	"gitlab.com/etke.cc/int/iap/errors"
 	"gitlab.com/etke.cc/int/iap/metrics"
 	"gitlab.com/etke.cc/int/iap/utils"
 )
@@ -48,6 +51,35 @@ func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cac
 	e.Any("*", proxy(target), authSvc.Middleware(), cacheSvc.Middleware())
 }
 
+func proxyError(w http.ResponseWriter, r *http.Request, err error) {
+	var ctx context.Context
+	var log zerolog.Logger
+	if r != nil {
+		ctx = r.Context()
+		log = apm.Log(ctx).With().
+			Str("req.method", r.Method).
+			Str("req.url", r.URL.String()).
+			Any("req.headers", r.Header).
+			Logger()
+	} else {
+		ctx = apm.NewContext()
+		log = *apm.Log(ctx)
+	}
+
+	defer func() {
+		if rec := recover(); rec != nil {
+			log.Error().Interface("error", rec).Msg("recovering from panic in proxy error handler")
+			errors.NewResponse(http.StatusInternalServerError).WriteTo(ctx, w)
+		}
+	}()
+	var bodyb []byte
+	if r != nil && r.Body != nil {
+		bodyb, _ = io.ReadAll(r.Body) //nolint:errcheck // ignore proxyError
+	}
+	log.Warn().Err(err).Str("resp.body", string(bodyb)).Msg("failed")
+	errors.NewResponse(http.StatusBadGateway).WriteTo(ctx, w)
+}
+
 func proxy(target config.Target) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		src := *c.Request().URL
@@ -57,17 +89,7 @@ func proxy(target config.Target) echo.HandlerFunc {
 
 		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
 		proxy.Transport = httpTransport
-		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-			defer func() {
-				if rec := recover(); rec != nil {
-					log.Error().Interface("error", rec).Msg("recovering from panic in proxy error handler")
-					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				}
-			}()
-			bodyb, _ := io.ReadAll(r.Body) //nolint:errcheck // ignore error
-			log.Warn().Err(err).Str("resp.body", string(bodyb)).Msg("failed")
-			http.Error(w, err.Error(), http.StatusBadGateway)
-		}
+		proxy.ErrorHandler = proxyError
 		proxy.ModifyResponse = func(r *http.Response) error {
 			// rewrite location header if needed
 			if location := r.Header.Get("Location"); location != "" {

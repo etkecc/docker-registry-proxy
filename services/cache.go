@@ -49,9 +49,9 @@ type Cache struct {
 }
 
 // NewCache returns a new Cache instance.
-func NewCache() *Cache {
+func NewCache(ttl, size int) *Cache {
 	return &Cache{
-		backend: expirable.NewLRU[string, cached](1000, nil, 1*time.Hour),
+		backend: expirable.NewLRU[string, cached](size, nil, time.Duration(ttl)*time.Minute),
 	}
 }
 

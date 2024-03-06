@@ -10,6 +10,7 @@ import (
 	"github.com/mileusna/useragent"
 	"github.com/rs/zerolog"
 	"gitlab.com/etke.cc/go/psd"
+	"gitlab.com/etke.cc/int/iap/errors"
 	"gitlab.com/etke.cc/int/iap/metrics"
 	"gitlab.com/etke.cc/int/iap/utils"
 )
@@ -33,13 +34,13 @@ type Auth struct {
 }
 
 // NewAuth creates a new Auth service
-func NewAuth(allowedIPs, allowedUAs, trustedIPs []string, psdc *psd.Client) *Auth {
+func NewAuth(allowedIPs, allowedUAs, trustedIPs []string, cacheTTL, cacheSize int, psdc *psd.Client) *Auth {
 	return &Auth{
 		allowedIPs:      utils.NewMap(allowedIPs, true),
 		allowedUAs:      utils.NewMap(allowedUAs, true),
 		trustedIPs:      utils.NewMap(trustedIPs, true),
-		cacheAllowedOK:  expirable.NewLRU[string, string](1000, nil, 1*time.Hour),
-		cacheAllowedNOK: expirable.NewLRU[string, bool](10000, nil, 1*time.Hour),
+		cacheAllowedOK:  expirable.NewLRU[string, string](cacheSize, nil, time.Duration(cacheTTL)*time.Minute),
+		cacheAllowedNOK: expirable.NewLRU[string, bool](cacheSize, nil, time.Duration(cacheTTL)*time.Minute),
 		psdc:            psdc,
 	}
 }
@@ -52,7 +53,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 			ip := c.RealIP()
 			if ip == "" {
 				log.Error().Msg("Failed to get client IP")
-				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get real IP")
+				return c.JSON(http.StatusInternalServerError, errors.NewResponse(http.StatusInternalServerError))
 			}
 
 			if allowedMethods[c.Request().Method] {
@@ -62,7 +63,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 				return a.middlewareTrusted(c, ip, log, next)
 			}
 			log.Info().Str("reason", "method not allowed").Msg("rejected")
-			return echo.NewHTTPError(http.StatusMethodNotAllowed, "Method not allowed")
+			return c.JSON(http.StatusMethodNotAllowed, errors.NewResponse(http.StatusMethodNotAllowed))
 		}
 	}
 }
@@ -72,11 +73,11 @@ func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger,
 		go metrics.Auth(false)
 		return next(c)
 	}
-	ok, err := a.allowedFull(c, ip, log)
+	ok, statusCode := a.allowedFull(c, ip, log)
 	if !ok {
 		go metrics.Auth(false)
 		a.cacheAllowedNOK.Add(ip, true)
-		return err
+		return c.JSON(statusCode, errors.NewResponse(statusCode))
 	}
 
 	go metrics.Auth(true)
@@ -93,7 +94,7 @@ func (a *Auth) middlewareTrusted(c echo.Context, ip string, log *zerolog.Logger,
 
 	log.Info().Str("reason", "IP is not trusted").Msg("rejected")
 	go metrics.Auth(false)
-	return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+	return c.JSON(http.StatusForbidden, errors.NewResponse(http.StatusForbidden))
 }
 
 func (a *Auth) allowedFromCache(c echo.Context, ip string, log *zerolog.Logger) bool {
@@ -111,37 +112,38 @@ func (a *Auth) allowedFromCache(c echo.Context, ip string, log *zerolog.Logger) 
 	return false
 }
 
-func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) (bool, *echo.HTTPError) {
+func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) (ok bool, statusCode int) {
 	if a.cacheAllowedNOK.Contains(ip) {
 		log.Info().Str("reason", "cached NOK").Msg("rejected")
-		return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
+		return false, http.StatusPaymentRequired
 	}
 
 	if !a.allowedUAs[useragent.Parse(c.Request().UserAgent()).Name] {
 		log.Info().Str("reason", "UA name is not allowed").Msg("rejected")
-		return false, echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+		return false, http.StatusForbidden
 	}
 
 	if a.psdc == nil {
-		log.Error().Msg("PSD client is not available")
-		return false, echo.NewHTTPError(http.StatusInternalServerError, "Cannot authenticate")
+		log.Debug().Msg("PSD client is not available")
+		return true, http.StatusOK
 	}
+
 	targets, err := a.psdc.GetWithContext(c.Request().Context(), ip)
 	if err != nil {
 		if strings.Contains(err.Error(), "410 Gone") {
 			log.Info().Str("reason", "no targets").Msg("rejected")
-			return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
+			return false, http.StatusPaymentRequired
 		}
 		log.Error().Err(err).Msg("Failed to get targets")
-		return false, echo.NewHTTPError(http.StatusInternalServerError, "Failed to authenticate")
+		return false, http.StatusInternalServerError
 	}
 	// if no targets, add IP to NOK cache and return 402
 	if len(targets) == 0 {
 		log.Info().Str("reason", "no targets").Msg("rejected")
-		return false, echo.NewHTTPError(http.StatusPaymentRequired, "Payment required")
+		return false, http.StatusPaymentRequired
 	}
 
 	log.Debug().Int("targets", len(targets)).Msg("Targets found")
 	c.Set("host", targets[0].GetDomain())
-	return true, nil
+	return true, http.StatusOK
 }
