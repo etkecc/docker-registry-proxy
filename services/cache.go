@@ -14,8 +14,9 @@ import (
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/labstack/echo/v4"
-	"gitlab.com/etke.cc/int/iap/metrics"
-	"gitlab.com/etke.cc/int/iap/utils"
+
+	"gitlab.com/etke.cc/docker-registry-proxy/metrics"
+	"gitlab.com/etke.cc/docker-registry-proxy/utils"
 )
 
 var (

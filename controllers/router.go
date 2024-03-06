@@ -12,10 +12,11 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/etke.cc/go/apm"
 	echobasicauth "gitlab.com/etke.cc/go/echo-basic-auth"
-	"gitlab.com/etke.cc/int/iap/config"
-	"gitlab.com/etke.cc/int/iap/errors"
-	"gitlab.com/etke.cc/int/iap/metrics"
-	"gitlab.com/etke.cc/int/iap/utils"
+
+	"gitlab.com/etke.cc/docker-registry-proxy/config"
+	"gitlab.com/etke.cc/docker-registry-proxy/errors"
+	"gitlab.com/etke.cc/docker-registry-proxy/metrics"
+	"gitlab.com/etke.cc/docker-registry-proxy/utils"
 )
 
 var httpTransport http.RoundTripper

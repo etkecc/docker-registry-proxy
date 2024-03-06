@@ -14,17 +14,17 @@ Pass-through docker registry (distribution) proxy with the following features:
 
 env:
 
-* **IAP_PORT** - http port, default `8080`
-* **IAP_LOGLEVEL** - log level, default `info`
-* **IAP_SENTRY** - sentry dsn
-* **IAP_METRICS_LOGIN** - metrics login
-* **IAP_METRICS_PASSWORD** - metrics password
-* **IAP_METRICS_IPS** - metrics ips, space separated
-* **IAP_CACHE_TTL** - cache ttl in minutes, default: 60
-* **IAP_CACHE_SIZE** - cache size, default: 1000
-* **IAP_TARGET_SCHEME** - target scheme
-* **IAP_TARGET_HOST** - target host
-* **IAP_ALLOWED_IPS** - static list of allowed ips, space separated (GET, HEAD, OPTIONS requests)
-* **IAP_ALLOWED_UAS** - static list of allowed user agents, space separated (GET, HEAD, OPTIONS requests)
-* **IAP_TRUSTED_IPS** - static list of trusted ips, space separated (PATCH, POST, PUT, DELETE requests)
+* **DRP_PORT** - http port, default `8080`
+* **DRP_LOGLEVEL** - log level, default `info`
+* **DRP_SENTRY** - sentry dsn
+* **DRP_METRICS_LOGIN** - metrics login
+* **DRP_METRICS_PASSWORD** - metrics password
+* **DRP_METRICS_IPS** - metrics ips, space separated
+* **DRP_CACHE_TTL** - cache ttl in minutes, default: 60
+* **DRP_CACHE_SIZE** - cache size, default: 1000
+* **DRP_TARGET_SCHEME** - target scheme
+* **DRP_TARGET_HOST** - target host
+* **DRP_ALLOWED_IPS** - static list of allowed ips, space separated (GET, HEAD, OPTIONS requests)
+* **DRP_ALLOWED_UAS** - static list of allowed user agents, space separated (GET, HEAD, OPTIONS requests)
+* **DRP_TRUSTED_IPS** - static list of trusted ips, space separated (PATCH, POST, PUT, DELETE requests)
 

@@ -13,12 +13,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"github.com/ziflex/lecho/v3"
-
 	"gitlab.com/etke.cc/go/apm"
 	"gitlab.com/etke.cc/go/psd"
-	"gitlab.com/etke.cc/int/iap/config"
-	"gitlab.com/etke.cc/int/iap/controllers"
-	"gitlab.com/etke.cc/int/iap/services"
+
+	"gitlab.com/etke.cc/docker-registry-proxy/config"
+	"gitlab.com/etke.cc/docker-registry-proxy/controllers"
+	"gitlab.com/etke.cc/docker-registry-proxy/services"
 )
 
 var (
@@ -30,7 +30,7 @@ func main() {
 	quit := make(chan struct{})
 
 	cfg := config.New()
-	apm.SetName("iap")
+	apm.SetName("drp")
 	apm.SetSentryDSN(cfg.SentryDSN)
 	apm.SetLogLevel(cfg.LogLevel)
 	apm.WrapClient(nil)

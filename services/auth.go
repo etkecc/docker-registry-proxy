@@ -10,9 +10,10 @@ import (
 	"github.com/mileusna/useragent"
 	"github.com/rs/zerolog"
 	"gitlab.com/etke.cc/go/psd"
-	"gitlab.com/etke.cc/int/iap/errors"
-	"gitlab.com/etke.cc/int/iap/metrics"
-	"gitlab.com/etke.cc/int/iap/utils"
+
+	"gitlab.com/etke.cc/docker-registry-proxy/errors"
+	"gitlab.com/etke.cc/docker-registry-proxy/metrics"
+	"gitlab.com/etke.cc/docker-registry-proxy/utils"
 )
 
 var (

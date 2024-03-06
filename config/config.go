@@ -5,9 +5,9 @@ import (
 	"gitlab.com/etke.cc/go/env"
 )
 
-const prefix = "iap"
+const prefix = "drp"
 
-// Config for IAP service
+// Config for DRP service
 type Config struct {
 	Port      string // http port
 	LogLevel  string // log level

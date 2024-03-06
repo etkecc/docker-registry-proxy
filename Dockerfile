@@ -6,6 +6,6 @@ RUN just build
 
 FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /app/iap /bin/iap
+COPY --from=builder /app/drp /bin/drp
 USER app
-ENTRYPOINT ["/bin/iap"]
+ENTRYPOINT ["/bin/drp"]

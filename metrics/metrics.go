@@ -9,15 +9,15 @@ import (
 )
 
 var (
-	requestsTotal = metrics.NewCounter("iap_requests_total")
-	requestsHEAD  = metrics.NewCounter("iap_requests_head")
-	requestsGET   = metrics.NewCounter("iap_requests_get")
+	requestsTotal = metrics.NewCounter("drp_requests_total")
+	requestsHEAD  = metrics.NewCounter("drp_requests_head")
+	requestsGET   = metrics.NewCounter("drp_requests_get")
 
-	authFailures  = metrics.NewCounter("iap_auth_failures")
-	authSuccesses = metrics.NewCounter("iap_auth_successes")
+	authFailures  = metrics.NewCounter("drp_auth_failures")
+	authSuccesses = metrics.NewCounter("drp_auth_successes")
 
-	cacheHit  = metrics.NewCounter("iap_cache_hits")
-	cacheMiss = metrics.NewCounter("iap_cache_misses")
+	cacheHit  = metrics.NewCounter("drp_cache_hits")
+	cacheMiss = metrics.NewCounter("drp_cache_misses")
 
 	notImages = map[string]bool{
 		"":         true,
@@ -87,7 +87,7 @@ func Request(method, path string) {
 	if notImages[image] {
 		return
 	}
-	metrics.GetOrCreateCounter(fmt.Sprintf("iap_requests_image{image=%q}", image)).Inc()
+	metrics.GetOrCreateCounter(fmt.Sprintf("drp_requests_image{image=%q}", image)).Inc()
 }
 
 // Auth increments the auth successes or failures counter
