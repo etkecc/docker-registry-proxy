@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -73,11 +72,7 @@ func proxyError(w http.ResponseWriter, r *http.Request, err error) {
 			errors.NewResponse(http.StatusInternalServerError).WriteTo(ctx, w)
 		}
 	}()
-	var bodyb []byte
-	if r != nil && r.Body != nil {
-		bodyb, _ = io.ReadAll(r.Body) //nolint:errcheck // ignore proxyError
-	}
-	log.Warn().Err(err).Str("resp.body", string(bodyb)).Msg("failed")
+	log.Warn().Err(err).Msg("failed")
 	errors.NewResponse(http.StatusBadGateway).WriteTo(ctx, w)
 }
 
