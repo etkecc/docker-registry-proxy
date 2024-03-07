@@ -9,6 +9,7 @@ Pass-through docker registry (distribution) proxy with the following features:
 * ip filtering (GET, HEAD, OPTIONS) and trust (PATCH, POST, PUT, DELETE)
 * user agent filtering
 * configurable backend (including private networks)
+* configurable dynamic auth provider
 
 ## Config
 
@@ -26,5 +27,8 @@ env:
 * **DRP_TARGET_HOST** - target host
 * **DRP_ALLOWED_IPS** - static list of allowed ips, space separated (GET, HEAD, OPTIONS requests)
 * **DRP_ALLOWED_UAS** - static list of allowed user agents, space separated (GET, HEAD, OPTIONS requests)
+* **DRP_ALLOWED_PROVIDER_URL** - (optional) url of the dynamic auth provider with `%s` placeholder for IP, e.g., `http://auth-provider:8080/check/%s` will send `GET` request to the `http://auth-provider:8080/check/1.2.3.4` endpoint and expects `200` status code for allowed
+* **DRP_ALLOWED_PROVIDER_LOGIN** - (optional) basic auth login for the dynamic auth provider
+* **DRP_ALLOWED_PROVIDER_PASSWORD** - (optional) basic auth password for the dynamic auth provider
 * **DRP_TRUSTED_IPS** - static list of trusted ips, space separated (PATCH, POST, PUT, DELETE requests)
 

@@ -14,7 +14,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/ziflex/lecho/v3"
 	"gitlab.com/etke.cc/go/apm"
-	"gitlab.com/etke.cc/go/psd"
 
 	"gitlab.com/etke.cc/docker-registry-proxy/config"
 	"gitlab.com/etke.cc/docker-registry-proxy/controllers"
@@ -44,11 +43,11 @@ func main() {
 	e.Logger = lecho.From(*log)
 	initShutdown(quit)
 	defer recovery()
-	var psdc *psd.Client
-	if cfg.PSD.URL != "" && cfg.PSD.Login != "" && cfg.PSD.Password != "" {
-		psdc = psd.NewClient(cfg.PSD.URL, cfg.PSD.Login, cfg.PSD.Password)
+	var authProvider *services.AuthProvider
+	if cfg.Allowed.Provider.URL != "" {
+		authProvider = services.NewAuthProvider(cfg.Allowed.Provider.URL, cfg.Allowed.Provider.Login, cfg.Allowed.Provider.Password)
 	}
-	authSvc := services.NewAuth(cfg.Allowed.IPs, cfg.Allowed.UAs, cfg.Trusted.IPs, cfg.Cache.TTL, cfg.Cache.Size, psdc)
+	authSvc := services.NewAuth(cfg.Allowed.IPs, cfg.Allowed.UAs, cfg.Trusted.IPs, cfg.Cache.TTL, cfg.Cache.Size, authProvider)
 	cacheSvc := services.NewCache(cfg.Cache.TTL, cfg.Cache.Size)
 	controllers.ConfigureRouter(e, cfg.Metrics, authSvc, cacheSvc, cfg.Target)
 

@@ -9,10 +9,9 @@ const prefix = "drp"
 
 // Config for DRP service
 type Config struct {
-	Port      string // http port
-	LogLevel  string // log level
-	SentryDSN string // sentry dsn
-	PSD       PSD
+	Port      string              // http port
+	LogLevel  string              // log level
+	SentryDSN string              // sentry dsn
 	Target    Target              // target config
 	Cache     Cache               // cache config
 	Allowed   Allowed             // allowed ips and user agents (GET, HEAD, OPTIONS requests only)
@@ -22,8 +21,9 @@ type Config struct {
 
 // Allowed config (GET, HEAD, OPTIONS requests only)
 type Allowed struct {
-	IPs []string // static list of allowed IPs - requests from those IPS will be allowed
-	UAs []string // only those user agents' names will be allowed, all other will be rejected
+	IPs      []string     // static list of allowed IPs - requests from those IPS will be allowed
+	UAs      []string     // only those user agents' names will be allowed, all other will be rejected
+	Provider AuthProvider // auth provider
 }
 
 // Trusted config (PATCH, POST, PUT, DELETE requests)
@@ -43,7 +43,7 @@ type Target struct {
 	Host   string
 }
 
-type PSD struct {
+type AuthProvider struct {
 	URL      string
 	Login    string
 	Password string
@@ -57,11 +57,6 @@ func New() *Config {
 		Port:      env.String("port", "8080"),
 		LogLevel:  env.String("loglevel", "info"),
 		SentryDSN: env.String("sentry"),
-		PSD: PSD{
-			URL:      env.String("psd.url"),
-			Login:    env.String("psd.login"),
-			Password: env.String("psd.password"),
-		},
 		Metrics: &echobasicauth.Auth{
 			Login:    env.String("metrics.login"),
 			Password: env.String("metrics.password"),
@@ -78,6 +73,11 @@ func New() *Config {
 		Allowed: Allowed{
 			IPs: env.Slice("allowed.ips"),
 			UAs: env.Slice("allowed.uas"),
+			Provider: AuthProvider{
+				URL:      env.String("allowed.provider.url"),
+				Login:    env.String("allowed.provider.login"),
+				Password: env.String("allowed.provider.password"),
+			},
 		},
 		Trusted: Trusted{
 			IPs: env.Slice("trusted.ips"),

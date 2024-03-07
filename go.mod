@@ -15,7 +15,6 @@ require (
 	gitlab.com/etke.cc/go/apm v1.0.1
 	gitlab.com/etke.cc/go/echo-basic-auth v1.1.0
 	gitlab.com/etke.cc/go/env v1.1.0
-	gitlab.com/etke.cc/go/psd v1.1.1
 )
 
 require (

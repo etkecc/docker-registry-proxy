@@ -2,14 +2,12 @@ package services
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/labstack/echo/v4"
 	"github.com/mileusna/useragent"
 	"github.com/rs/zerolog"
-	"gitlab.com/etke.cc/go/psd"
 
 	"gitlab.com/etke.cc/docker-registry-proxy/errors"
 	"gitlab.com/etke.cc/docker-registry-proxy/metrics"
@@ -31,18 +29,18 @@ type Auth struct {
 	trustedIPs      map[string]bool
 	cacheAllowedOK  *expirable.LRU[string, string]
 	cacheAllowedNOK *expirable.LRU[string, bool]
-	psdc            *psd.Client
+	provider        *AuthProvider
 }
 
 // NewAuth creates a new Auth service
-func NewAuth(allowedIPs, allowedUAs, trustedIPs []string, cacheTTL, cacheSize int, psdc *psd.Client) *Auth {
+func NewAuth(allowedIPs, allowedUAs, trustedIPs []string, cacheTTL, cacheSize int, provider *AuthProvider) *Auth {
 	return &Auth{
+		provider:        provider,
 		allowedIPs:      utils.NewMap(allowedIPs, true),
 		allowedUAs:      utils.NewMap(allowedUAs, true),
 		trustedIPs:      utils.NewMap(trustedIPs, true),
 		cacheAllowedOK:  expirable.NewLRU[string, string](cacheSize, nil, time.Duration(cacheTTL)*time.Minute),
 		cacheAllowedNOK: expirable.NewLRU[string, bool](cacheSize, nil, time.Duration(cacheTTL)*time.Minute),
-		psdc:            psdc,
 	}
 }
 
@@ -124,27 +122,16 @@ func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) (ok b
 		return false, http.StatusForbidden
 	}
 
-	if a.psdc == nil {
-		log.Debug().Msg("PSD client is not available")
+	if a.provider == nil {
+		log.Debug().Msg("Auth Provider is not configured")
 		return true, http.StatusOK
 	}
 
-	targets, err := a.psdc.GetWithContext(c.Request().Context(), ip)
-	if err != nil {
-		if strings.Contains(err.Error(), "410 Gone") {
-			log.Info().Str("reason", "no targets").Msg("rejected")
-			return false, http.StatusPaymentRequired
-		}
-		log.Error().Err(err).Msg("Failed to get targets")
-		return false, http.StatusInternalServerError
-	}
-	// if no targets, add IP to NOK cache and return 402
-	if len(targets) == 0 {
-		log.Info().Str("reason", "no targets").Msg("rejected")
+	ok, err := a.provider.IsAllowed(c.Request().Context(), ip)
+	if !ok {
+		log.Info().Str("reason", err.Error()).Msg("rejected")
 		return false, http.StatusPaymentRequired
 	}
 
-	log.Debug().Int("targets", len(targets)).Msg("Targets found")
-	c.Set("host", targets[0].GetDomain())
 	return true, http.StatusOK
 }

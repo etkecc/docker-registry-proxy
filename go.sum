@@ -57,8 +57,6 @@ gitlab.com/etke.cc/go/echo-basic-auth v1.1.0 h1:U3c9aZEq4QRytdTdYYZMGsIppKumTTCF
 gitlab.com/etke.cc/go/echo-basic-auth v1.1.0/go.mod h1:QbmR+SXjMTNt1CF5A0d3kUjZ15Wwuzh04aRVaiDGMX8=
 gitlab.com/etke.cc/go/env v1.1.0 h1:nbMhZkMu6C8lysRlb5siIiylWuyVkGAgEvwWEqz/82o=
 gitlab.com/etke.cc/go/env v1.1.0/go.mod h1:e1l4RM5MA1sc0R1w/RBDAESWRwgo5cOG9gx8BKUn2C4=
-gitlab.com/etke.cc/go/psd v1.1.1 h1:UIL0X+thvYaeBTX8/G6lilqAToGCypihujGu5gtK5zQ=
-gitlab.com/etke.cc/go/psd v1.1.1/go.mod h1:6b444NOkXlZ1n7WLCNazAkOC2bHPgqgfB9earThwKPk=
 golang.org/x/crypto v0.21.0 h1:X31++rzVUdKhX5sWmSOFZxx8UW/ldWx55cbf08iNAMA=
 golang.org/x/crypto v0.21.0/go.mod h1:0BP7YvVV9gBbVKyeTG0Gyn+gZm94bibOW5BjDEYAOMs=
 golang.org/x/net v0.22.0 h1:9sGLhx7iRIHEiX0oAJ3MRZMUCElJgy7Br1nO+AMN3Tc=
