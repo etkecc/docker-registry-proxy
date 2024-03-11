@@ -62,7 +62,6 @@ func (cache *Cache) Middleware() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			go metrics.Request(c.Request().Method, c.Request().URL.Path)
 			cachekey := cache.key(c)
-			c.Set("cache.key", cachekey)
 			cacheable := isCacheable(c)
 			log := utils.NewLog(c)
 
@@ -72,7 +71,7 @@ func (cache *Cache) Middleware() echo.MiddlewareFunc {
 			}
 
 			if cache.returnCached(c, cachekey) {
-				log.Debug().Msg("cache hit")
+				log.Info().Msg("cache hit")
 				go metrics.Cache(true)
 				return nil
 			}
@@ -95,7 +94,6 @@ func (cache *Cache) Middleware() echo.MiddlewareFunc {
 
 func (cache *Cache) returnCached(c echo.Context, cachekey string) bool {
 	if v, ok := cache.backend.Get(cachekey); ok {
-		c.Set("cache.hit", true)
 		resp := v.Response() //nolint:bodyclose // it's io.NopCloser
 		resp.Header.Set("X-Cache", "HIT")
 		for k := range resp.Header {

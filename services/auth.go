@@ -27,7 +27,7 @@ type Auth struct {
 	allowedIPs      map[string]bool
 	allowedUAs      map[string]bool
 	trustedIPs      map[string]bool
-	cacheAllowedOK  *expirable.LRU[string, string]
+	cacheAllowedOK  *expirable.LRU[string, bool]
 	cacheAllowedNOK *expirable.LRU[string, bool]
 	provider        *AuthProvider
 }
@@ -39,7 +39,7 @@ func NewAuth(allowedIPs, allowedUAs, trustedIPs []string, cacheTTL, cacheSize in
 		allowedIPs:      utils.NewMap(allowedIPs, true),
 		allowedUAs:      utils.NewMap(allowedUAs, true),
 		trustedIPs:      utils.NewMap(trustedIPs, true),
-		cacheAllowedOK:  expirable.NewLRU[string, string](cacheSize, nil, time.Duration(cacheTTL)*time.Minute),
+		cacheAllowedOK:  expirable.NewLRU[string, bool](cacheSize, nil, time.Duration(cacheTTL)*time.Minute),
 		cacheAllowedNOK: expirable.NewLRU[string, bool](cacheSize, nil, time.Duration(cacheTTL)*time.Minute),
 	}
 }
@@ -68,23 +68,18 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 }
 
 func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger, next echo.HandlerFunc) error {
-	if a.allowedFromCache(c, ip, log) {
+	if a.allowedFromCache(ip, log) {
 		go metrics.Auth(ip, true)
 		return next(c)
 	}
-	ok, statusCode := a.allowedFull(c, ip, log)
-	if !ok {
+	if ok := a.allowedFull(c, ip, log); !ok {
 		go metrics.Auth(ip, false)
 		a.cacheAllowedNOK.Add(ip, true)
-		return c.JSON(statusCode, errors.NewResponse(statusCode))
+		return c.JSON(http.StatusPaymentRequired, errors.NewResponse(http.StatusPaymentRequired))
 	}
 
 	go metrics.Auth(ip, true)
-	host, ok := c.Get("host").(string)
-	if !ok {
-		host = "UNKNOWN"
-	}
-	a.cacheAllowedOK.Add(ip, host)
+	a.cacheAllowedOK.Add(ip, true)
 	return next(c)
 }
 
@@ -100,14 +95,13 @@ func (a *Auth) middlewareTrusted(c echo.Context, ip string, log *zerolog.Logger,
 	return c.JSON(http.StatusForbidden, errors.NewResponse(http.StatusForbidden))
 }
 
-func (a *Auth) allowedFromCache(c echo.Context, ip string, log *zerolog.Logger) bool {
+func (a *Auth) allowedFromCache(ip string, log *zerolog.Logger) bool {
 	if a.allowedIPs[ip] {
 		log.Debug().Msg("allowed IP")
 		return true
 	}
-	authorizedHost, ok := a.cacheAllowedOK.Get(ip)
-	if ok {
-		c.Set("host", authorizedHost)
+
+	if _, ok := a.cacheAllowedOK.Get(ip); ok {
 		log.Debug().Msg("OK cache hit")
 		return true
 	}
@@ -115,27 +109,27 @@ func (a *Auth) allowedFromCache(c echo.Context, ip string, log *zerolog.Logger) 
 	return false
 }
 
-func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) (ok bool, statusCode int) {
-	if a.cacheAllowedNOK.Contains(ip) {
+func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) bool {
+	if _, ok := a.cacheAllowedNOK.Get(ip); ok {
 		log.Info().Str("reason", "cached NOK").Msg("rejected")
-		return false, http.StatusPaymentRequired
+		return false
 	}
 
 	if !a.allowedUAs[useragent.Parse(c.Request().UserAgent()).Name] {
 		log.Info().Str("reason", "UA name is not allowed").Msg("rejected")
-		return false, http.StatusForbidden
+		return false
 	}
 
 	if a.provider == nil {
 		log.Debug().Msg("Auth Provider is not configured")
-		return true, http.StatusOK
+		return true
 	}
 
 	ok, err := a.provider.IsAllowed(c.Request().Context(), ip)
 	if !ok {
 		log.Info().Str("reason", err.Error()).Msg("rejected")
-		return false, http.StatusPaymentRequired
+		return false
 	}
 
-	return true, http.StatusOK
+	return true
 }
