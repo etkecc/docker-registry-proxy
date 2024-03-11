@@ -69,7 +69,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 
 func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger, next echo.HandlerFunc) error {
 	if a.allowedFromCache(c, ip, log) {
-		go metrics.Auth(ip, false)
+		go metrics.Auth(ip, true)
 		return next(c)
 	}
 	ok, statusCode := a.allowedFull(c, ip, log)
