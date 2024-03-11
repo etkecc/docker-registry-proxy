@@ -13,9 +13,6 @@ var (
 	requestsHEAD  = metrics.NewCounter("drp_requests_head")
 	requestsGET   = metrics.NewCounter("drp_requests_get")
 
-	authFailures  = metrics.NewCounter("drp_auth_failures")
-	authSuccesses = metrics.NewCounter("drp_auth_successes")
-
 	cacheHit  = metrics.NewCounter("drp_cache_hits")
 	cacheMiss = metrics.NewCounter("drp_cache_misses")
 
@@ -91,11 +88,12 @@ func Request(method, path string) {
 }
 
 // Auth increments the auth successes or failures counter
-func Auth(success bool) {
-	if success {
-		authSuccesses.Inc()
-	} else {
-		authFailures.Inc()
+func Auth(ip string, success bool) {
+	switch success {
+	case true:
+		metrics.GetOrCreateCounter(fmt.Sprintf("drp_auth_successes{ip=%q}", ip)).Inc()
+	case false:
+		metrics.GetOrCreateCounter(fmt.Sprintf("drp_auth_failures{ip=%q}", ip)).Inc()
 	}
 }
 

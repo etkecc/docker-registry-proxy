@@ -69,30 +69,34 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 
 func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger, next echo.HandlerFunc) error {
 	if a.allowedFromCache(c, ip, log) {
-		go metrics.Auth(false)
+		go metrics.Auth(ip, false)
 		return next(c)
 	}
 	ok, statusCode := a.allowedFull(c, ip, log)
 	if !ok {
-		go metrics.Auth(false)
+		go metrics.Auth(ip, false)
 		a.cacheAllowedNOK.Add(ip, true)
 		return c.JSON(statusCode, errors.NewResponse(statusCode))
 	}
 
-	go metrics.Auth(true)
-	a.cacheAllowedOK.Add(ip, c.Get("host").(string)) //nolint:forcetypeassert // we know it's a string
+	go metrics.Auth(ip, true)
+	host, ok := c.Get("host").(string)
+	if !ok {
+		host = "UNKNOWN"
+	}
+	a.cacheAllowedOK.Add(ip, host)
 	return next(c)
 }
 
 func (a *Auth) middlewareTrusted(c echo.Context, ip string, log *zerolog.Logger, next echo.HandlerFunc) error {
 	if a.trustedIPs[ip] {
 		log.Debug().Msg("trusted IP")
-		go metrics.Auth(true)
+		go metrics.Auth(ip, true)
 		return next(c)
 	}
 
 	log.Info().Str("reason", "IP is not trusted").Msg("rejected")
-	go metrics.Auth(false)
+	go metrics.Auth(ip, false)
 	return c.JSON(http.StatusForbidden, errors.NewResponse(http.StatusForbidden))
 }
 
