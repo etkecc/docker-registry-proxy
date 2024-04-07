@@ -6,6 +6,7 @@ Pass-through docker registry (distribution) proxy with the following features:
 * metadata caching (up to 100% cache hit ratio on supported endpoints and http methods)
 * prometheus metrics with basic auth and ip filtering
 * sentry integration
+* healthchecks.io integration
 * ip filtering (GET, HEAD, OPTIONS) and trust (PATCH, POST, PUT, DELETE)
 * user agent filtering
 * configurable backend (including private networks)
@@ -18,6 +19,8 @@ env:
 * **DRP_PORT** - http port, default `8080`
 * **DRP_LOGLEVEL** - log level, default `info`
 * **DRP_SENTRY** - sentry dsn
+* **DRP_HC_URL** - healthchecks.io url, default: `https://hc-ping.com`
+* **DRP_HC_UUID** - healthchecks.io check uuid
 * **DRP_METRICS_LOGIN** - metrics login
 * **DRP_METRICS_PASSWORD** - metrics password
 * **DRP_METRICS_IPS** - metrics ips, space separated

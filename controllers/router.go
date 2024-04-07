@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -24,8 +27,12 @@ type echoService interface {
 	Middleware() echo.MiddlewareFunc
 }
 
+type healthchecksService interface {
+	Fail(optionalBody ...io.Reader)
+}
+
 // ConfigureRouter configures echo router
-func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cacheSvc echoService, target config.Target) {
+func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cacheSvc echoService, hcSvc healthchecksService, target config.Target) {
 	httpTransport = apm.WrapRoundTripper(http.DefaultTransport)
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
@@ -48,10 +55,10 @@ func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cac
 	})
 	e.GET("/metrics", metrics.Handler(), metricsAuthMiddleware)
 
-	e.Any("*", proxy(target), authSvc.Middleware(), cacheSvc.Middleware())
+	e.Any("*", proxy(target, hcSvc), authSvc.Middleware(), cacheSvc.Middleware())
 }
 
-func proxyError(w http.ResponseWriter, r *http.Request, err error) {
+func proxyError(w http.ResponseWriter, r *http.Request, hcSvc healthchecksService, err error) {
 	var ctx context.Context
 	var log zerolog.Logger
 	if r != nil {
@@ -69,14 +76,20 @@ func proxyError(w http.ResponseWriter, r *http.Request, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			log.Error().Interface("error", rec).Msg("recovering from panic in proxy error handler")
+			if hcSvc != nil {
+				hcSvc.Fail(strings.NewReader(fmt.Sprintf("panic in proxy error handler: %+v", rec)))
+			}
 			errors.NewResponse(http.StatusInternalServerError).WriteTo(ctx, w)
 		}
 	}()
 	log.Warn().Err(err).Msg("failed")
+	if hcSvc != nil {
+		hcSvc.Fail(strings.NewReader(fmt.Sprintf("%s %s failed: %+v", r.Method, r.URL.String(), err)))
+	}
 	errors.NewResponse(http.StatusBadGateway).WriteTo(ctx, w)
 }
 
-func proxy(target config.Target) echo.HandlerFunc {
+func proxy(target config.Target, hcSvc healthchecksService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		src := *c.Request().URL
 		src.Host = c.Request().Host
@@ -85,7 +98,7 @@ func proxy(target config.Target) echo.HandlerFunc {
 
 		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Host: target.Host, Scheme: target.Scheme})
 		proxy.Transport = httpTransport
-		proxy.ErrorHandler = proxyError
+		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) { proxyError(w, r, hcSvc, err) }
 		proxy.ModifyResponse = func(r *http.Response) error {
 			// rewrite location header if needed
 			if location := r.Header.Get("Location"); location != "" {

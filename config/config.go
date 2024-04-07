@@ -9,14 +9,21 @@ const prefix = "drp"
 
 // Config for DRP service
 type Config struct {
-	Port      string              // http port
-	LogLevel  string              // log level
-	SentryDSN string              // sentry dsn
-	Target    Target              // target config
-	Cache     Cache               // cache config
-	Allowed   Allowed             // allowed ips and user agents (GET, HEAD, OPTIONS requests only)
-	Trusted   Trusted             // trusted ips (PATCH, POST, PUT, DELETE requests)
-	Metrics   *echobasicauth.Auth // metrics basic auth
+	Port         string              // http port
+	LogLevel     string              // log level
+	SentryDSN    string              // sentry dsn
+	Healthchecks Healthchecks        // healthchecks config
+	Target       Target              // target config
+	Cache        Cache               // cache config
+	Allowed      Allowed             // allowed ips and user agents (GET, HEAD, OPTIONS requests only)
+	Trusted      Trusted             // trusted ips (PATCH, POST, PUT, DELETE requests)
+	Metrics      *echobasicauth.Auth // metrics basic auth
+}
+
+// Healthchecks.io config
+type Healthchecks struct {
+	URL  string
+	UUID string
 }
 
 // Allowed config (GET, HEAD, OPTIONS requests only)
@@ -57,6 +64,10 @@ func New() *Config {
 		Port:      env.String("port", "8080"),
 		LogLevel:  env.String("loglevel", "info"),
 		SentryDSN: env.String("sentry"),
+		Healthchecks: Healthchecks{
+			URL:  env.String("hc.url", "https://hc-ping.com"),
+			UUID: env.String("hc.uuid"),
+		},
 		Metrics: &echobasicauth.Auth{
 			Login:    env.String("metrics.login"),
 			Password: env.String("metrics.password"),

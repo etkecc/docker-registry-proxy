@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/ziflex/lecho/v3"
 	"gitlab.com/etke.cc/go/apm"
+	"gitlab.com/etke.cc/go/healthchecks/v2"
 
 	"gitlab.com/etke.cc/docker-registry-proxy/config"
 	"gitlab.com/etke.cc/docker-registry-proxy/controllers"
@@ -22,6 +25,7 @@ import (
 
 var (
 	e   *echo.Echo
+	hc  *healthchecks.Client
 	log *zerolog.Logger
 )
 
@@ -39,6 +43,17 @@ func main() {
 	log.Info().Msg("Docker Registry Proxy")
 	log.Info().Msg("#############################")
 
+	if cfg.Healthchecks.UUID != "" {
+		log.Info().Str("url", cfg.Healthchecks.URL).Str("uuid", cfg.Healthchecks.UUID).Msg("Healthchecks enabled")
+		hc = healthchecks.New(
+			healthchecks.WithBaseURL(cfg.Healthchecks.URL),
+			healthchecks.WithCheckUUID(cfg.Healthchecks.UUID),
+			healthchecks.WithHTTPClient(apm.WrapClient(nil)),
+		)
+		hc.Start(strings.NewReader("docker-registry-proxy is starting"))
+		go hc.Auto(60 * time.Second)
+	}
+
 	e = echo.New()
 	e.Logger = lecho.From(*log)
 	initShutdown(quit)
@@ -49,7 +64,7 @@ func main() {
 	}
 	authSvc := services.NewAuth(cfg.Allowed.IPs, cfg.Allowed.UAs, cfg.Trusted.IPs, cfg.Cache.TTL, cfg.Cache.Size, authProvider)
 	cacheSvc := services.NewCache(cfg.Cache.TTL, cfg.Cache.Size)
-	controllers.ConfigureRouter(e, cfg.Metrics, authSvc, cacheSvc, cfg.Target)
+	controllers.ConfigureRouter(e, cfg.Metrics, authSvc, cacheSvc, hc, cfg.Target)
 
 	if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error().Err(err).Msg("http server failed")
@@ -66,11 +81,11 @@ func initShutdown(quit chan struct{}) {
 		<-listener
 		defer close(quit)
 
-		shutdown()
+		shutdown(false)
 	}()
 }
 
-func shutdown() {
+func shutdown(paniced bool) {
 	log.Info().Msg("Shutting down...")
 	defer sentry.Flush(5 * time.Second)
 
@@ -79,15 +94,26 @@ func shutdown() {
 	if err := e.Shutdown(ctx); err != nil {
 		return
 	}
+	if hc != nil {
+		hc.Shutdown()
+		if !paniced {
+			hc.ExitStatus(0, strings.NewReader("docker-registry-proxy is shutting down"))
+		}
+	}
 
 	log.Info().Msg("Docker Registry Proxy has been stopped")
 	os.Exit(0) //nolint:gocritic // doesn't matter
 }
 
 func recovery() {
-	defer shutdown()
 	err := recover()
 	if err != nil {
+		defer shutdown(true)
 		sentry.CurrentHub().Recover(err)
+		if hc != nil {
+			hc.ExitStatus(1, strings.NewReader(fmt.Sprintf("panic: %+v", err)))
+		}
+	} else {
+		shutdown(false)
 	}
 }
