@@ -64,9 +64,8 @@ func proxyError(w http.ResponseWriter, r *http.Request, hcSvc healthchecksServic
 	if r != nil {
 		ctx = r.Context()
 		log = apm.Log(ctx).With().
-			Str("req.method", r.Method).
-			Str("req.url", r.URL.String()).
-			Any("req.headers", r.Header).
+			Str("method", r.Method).
+			Str("url", r.URL.String()).
 			Logger()
 	} else {
 		ctx = apm.NewContext()

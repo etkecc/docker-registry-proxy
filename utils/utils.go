@@ -18,10 +18,9 @@ func NewMap[T comparable, V any](slice []T, value V) map[T]V {
 // NewLog creates a new logger with context from echo.Context
 func NewLog(c echo.Context) *zerolog.Logger {
 	logCtx := apm.Log(c.Request().Context()).With().
-		Str("req.method", c.Request().Method).
-		Str("req.url", c.Request().URL.String()).
-		Any("req.headers", c.Request().Header).
-		Str("from.ip", c.RealIP())
+		Str("method", c.Request().Method).
+		Str("url", c.Request().URL.String()).
+		Str("ip", c.RealIP())
 
 	log := logCtx.Logger()
 	return &log
