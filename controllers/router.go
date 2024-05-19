@@ -90,6 +90,11 @@ func proxyError(w http.ResponseWriter, r *http.Request, hcSvc healthchecksServic
 
 func proxy(target config.Target, hcSvc healthchecksService) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		ctx = context.WithoutCancel(ctx)
+		ctx = apm.NewContext(ctx)
+		c.SetRequest(c.Request().WithContext(ctx))
+
 		src := *c.Request().URL
 		src.Host = c.Request().Host
 		log := utils.NewLog(c)
