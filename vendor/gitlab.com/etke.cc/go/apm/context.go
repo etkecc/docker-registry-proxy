@@ -13,7 +13,7 @@ func NewContext(parent ...context.Context) context.Context {
 		ctx = parent[0]
 	}
 
-	hub := sentry.GetHubFromContext(ctx)
+	hub := GetHub(ctx)
 	if hub == nil && sentryDSN != "" {
 		hub = sentry.CurrentHub().Clone()
 		ctx = sentry.SetHubOnContext(ctx, hub)

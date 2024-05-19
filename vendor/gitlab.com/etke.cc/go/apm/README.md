@@ -19,6 +19,9 @@ apm.SetName("my-app")
 apm.SetLogLevel("debug")
 apm.SetSentryDSN("https://sentry.io/your-dsn")
 
+// optionally, if you have gitlab.com/etke.cc/go/healthchecks client
+apm.SetHealthchecks(healthchecksClient)
+
 // thats it! you are ready to go
 
 // create a new context with correct sentry hub and logger

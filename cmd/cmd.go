@@ -50,6 +50,7 @@ func main() {
 			healthchecks.WithCheckUUID(cfg.Healthchecks.UUID),
 			healthchecks.WithHTTPClient(apm.WrapClient(nil)),
 		)
+		apm.SetHealthchecks(hc)
 		hc.Start(strings.NewReader("docker-registry-proxy is starting"))
 		go hc.Auto(60 * time.Second)
 	}

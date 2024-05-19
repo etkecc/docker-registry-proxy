@@ -2,8 +2,10 @@ package apm
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -17,32 +19,32 @@ const (
 	RetryDelay = 5 * time.Second
 )
 
-// APMRoundTripper is an http.RoundTripper that instruments http requests
-type APMRoundTripper struct {
+// RoundTripper is an http.RoundTripper that instruments http requests
+type RoundTripper struct {
 	rt         http.RoundTripper
 	maxRetries int
 	retryDelay time.Duration
 }
 
-// APMRoundTripperOption is a function that configures an APMRoundTripper
-type APMRoundTripperOption func(*APMRoundTripper)
+// RoundTripperOption is a function that configures an APMRoundTripper
+type RoundTripperOption func(*RoundTripper)
 
 // WithMaxRetries sets the maximum number of retries for http requests, otherwise defaults to 5
-func WithMaxRetries(maxRetries int) APMRoundTripperOption {
-	return func(rt *APMRoundTripper) {
+func WithMaxRetries(maxRetries int) RoundTripperOption {
+	return func(rt *RoundTripper) {
 		rt.maxRetries = maxRetries
 	}
 }
 
 // WithRetryDelay sets the delay between retries for http requests, otherwise defaults to 5 seconds
-func WithRetryDelay(retryDelay time.Duration) APMRoundTripperOption {
-	return func(rt *APMRoundTripper) {
+func WithRetryDelay(retryDelay time.Duration) RoundTripperOption {
+	return func(rt *RoundTripper) {
 		rt.retryDelay = retryDelay
 	}
 }
 
 // WrapClient wraps an http.Client with APM instrumentation and retry logic
-func WrapClient(c *http.Client, opts ...APMRoundTripperOption) *http.Client {
+func WrapClient(c *http.Client, opts ...RoundTripperOption) *http.Client {
 	if c == nil {
 		c = http.DefaultClient
 	}
@@ -51,11 +53,11 @@ func WrapClient(c *http.Client, opts ...APMRoundTripperOption) *http.Client {
 }
 
 // WrapRoundTripper wraps an http.RoundTripper with APM instrumentation and retry logic
-func WrapRoundTripper(rt http.RoundTripper, opts ...APMRoundTripperOption) http.RoundTripper {
+func WrapRoundTripper(rt http.RoundTripper, opts ...RoundTripperOption) http.RoundTripper {
 	if rt == nil {
 		rt = http.DefaultTransport
 	}
-	apmrt := &APMRoundTripper{
+	apmrt := &RoundTripper{
 		rt:         rt,
 		maxRetries: MaxRetries,
 		retryDelay: RetryDelay,
@@ -68,7 +70,7 @@ func WrapRoundTripper(rt http.RoundTripper, opts ...APMRoundTripperOption) http.
 
 // RoundTrip implements the http.RoundTripper interface, creating a transaction and span for each http request
 // and handling retries for 5xx responses
-func (rt *APMRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (rt *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// creating a custom http.client transaction if not already present to avoid unlabeled transactions
 	name := req.Method + " " + req.URL.String()
 	transaction := sentry.TransactionFromContext(req.Context())
@@ -90,15 +92,22 @@ func (rt *APMRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	)
 	defer span.Finish()
 
+	var resp *http.Response
+	var err error
 	if rt.maxRetries == 0 {
-		return rt.rt.RoundTrip(req)
+		resp, err = rt.rt.RoundTrip(req)
+	} else {
+		resp, err = rt.retry(req)
 	}
 
-	return rt.retry(req)
+	if err != nil {
+		HealthcheckFail(strings.NewReader(fmt.Sprintf("http.RoundTripper: %s %s failed: %+v", req.Method, req.URL.String(), err)))
+	}
+	return resp, err
 }
 
 // retry is a simple retry mechanism for http requests with exponential backoff
-func (rt *APMRoundTripper) retry(req *http.Request, currentRetry ...int) (*http.Response, error) {
+func (rt *RoundTripper) retry(req *http.Request, currentRetry ...int) (*http.Response, error) {
 	retry := 1
 	if len(currentRetry) > 0 {
 		retry = currentRetry[0]

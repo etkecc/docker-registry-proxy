@@ -36,7 +36,18 @@ func NewLogger(ctx context.Context, sentryOpts ...zlogsentry.WriterOption) *zero
 		w = consoleWriter
 	}
 
-	log := zerolog.New(w).With().Timestamp().Caller().Logger()
+	log := zerolog.New(w).With().Timestamp().Caller().Logger().Hook(hcHook)
+	return &log
+}
+
+// NewLoggerPlain returns a new logger without sentry integration
+func NewLoggerPlain() *zerolog.Logger {
+	consoleWriter := zerolog.ConsoleWriter{
+		Out:          os.Stdout,
+		PartsExclude: []string{zerolog.TimestampFieldName},
+	}
+
+	log := zerolog.New(consoleWriter)
 	return &log
 }
 

@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	hc            Healthchecks
 	loglevel      zerolog.Level
 	sentryDSN     string
 	sentryName    string
@@ -40,4 +41,9 @@ func SetLogLevel(level string) {
 // SetSentryDSN sets the sentry DSN
 func SetSentryDSN(dsn string) {
 	sentryDSN = dsn
+}
+
+// SetHealthchecks sets the healthchecks client
+func SetHealthchecks(h Healthchecks) {
+	hc = h
 }
