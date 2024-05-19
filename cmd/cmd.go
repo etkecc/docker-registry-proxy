@@ -64,7 +64,7 @@ func main() {
 		authProvider = services.NewAuthProvider(cfg.Allowed.Provider.URL, cfg.Allowed.Provider.Login, cfg.Allowed.Provider.Password)
 	}
 	authSvc := services.NewAuth(cfg.Allowed.IPs, cfg.Allowed.UAs, cfg.Trusted.IPs, cfg.Cache.TTL, cfg.Cache.Size, authProvider)
-	cacheSvc := services.NewCache(cfg.Cache.TTL, cfg.Cache.Size)
+	cacheSvc := services.NewCache(!cfg.Cache.Disabled, cfg.Cache.TTL, cfg.Cache.Size)
 	controllers.ConfigureRouter(e, cfg.Metrics, authSvc, cacheSvc, hc, cfg.Target)
 
 	if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {

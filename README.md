@@ -24,6 +24,7 @@ env:
 * **DRP_METRICS_LOGIN** - metrics login
 * **DRP_METRICS_PASSWORD** - metrics password
 * **DRP_METRICS_IPS** - metrics ips, space separated
+* **DRP_CACHE_DISABLED** - disable cache, default: `false`
 * **DRP_CACHE_TTL** - cache ttl in minutes, default: 60
 * **DRP_CACHE_SIZE** - cache size, default: 1000
 * **DRP_TARGET_SCHEME** - target scheme

@@ -40,8 +40,9 @@ type Trusted struct {
 
 // Cache config
 type Cache struct {
-	TTL  int // cache TTL in minutes
-	Size int // cache size
+	Disabled bool // cache disabled
+	TTL      int  // cache TTL in minutes
+	Size     int  // cache size
 }
 
 // Target (backend) config
@@ -78,8 +79,9 @@ func New() *Config {
 			Host:   env.String("target.host"),
 		},
 		Cache: Cache{
-			TTL:  env.Int("cache.ttl", 60),
-			Size: env.Int("cache.size", 1000),
+			Disabled: env.Bool("cache.disabled"),
+			TTL:      env.Int("cache.ttl", 60),
+			Size:     env.Int("cache.size", 1000),
 		},
 		Allowed: Allowed{
 			IPs: env.Slice("allowed.ips"),
