@@ -39,8 +39,6 @@ var (
 		regexp.MustCompile(`^GET /v2/.*/tags/list\?n=\d*$`),
 
 		regexp.MustCompile(`^HEAD /v2/.*/manifests/.*$`),
-
-		regexp.MustCompile(`^HEAD /v2/.*/blobs/sha256:[a-zA-Z0-9-_]*$`),
 	}
 )
 
