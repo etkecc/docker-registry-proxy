@@ -6,13 +6,13 @@ toolchain go1.21.4
 
 require (
 	github.com/VictoriaMetrics/metrics v1.33.1
-	github.com/getsentry/sentry-go v0.27.0
+	github.com/getsentry/sentry-go v0.28.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/mileusna/useragent v1.3.4
-	github.com/rs/zerolog v1.32.0
+	github.com/rs/zerolog v1.33.0
 	github.com/ziflex/lecho/v3 v3.6.0
-	gitlab.com/etke.cc/go/apm v1.2.3
+	gitlab.com/etke.cc/go/apm v1.2.5
 	gitlab.com/etke.cc/go/echo-basic-auth v1.1.0
 	gitlab.com/etke.cc/go/env v1.1.0
 	gitlab.com/etke.cc/go/healthchecks/v2 v2.2.0

@@ -7,7 +7,7 @@ github.com/archdx/zerolog-sentry
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
-# github.com/getsentry/sentry-go v0.27.0
+# github.com/getsentry/sentry-go v0.28.0
 ## explicit; go 1.18
 github.com/getsentry/sentry-go
 github.com/getsentry/sentry-go/internal/debug
@@ -43,7 +43,7 @@ github.com/mattn/go-isatty
 # github.com/mileusna/useragent v1.3.4
 ## explicit; go 1.14
 github.com/mileusna/useragent
-# github.com/rs/zerolog v1.32.0
+# github.com/rs/zerolog v1.33.0
 ## explicit; go 1.15
 github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
@@ -63,7 +63,7 @@ github.com/valyala/histogram
 # github.com/ziflex/lecho/v3 v3.6.0
 ## explicit; go 1.17
 github.com/ziflex/lecho/v3
-# gitlab.com/etke.cc/go/apm v1.2.3
+# gitlab.com/etke.cc/go/apm v1.2.5
 ## explicit; go 1.21.0
 gitlab.com/etke.cc/go/apm
 # gitlab.com/etke.cc/go/echo-basic-auth v1.1.0

@@ -33,7 +33,7 @@ type healthchecksService interface {
 
 // ConfigureRouter configures echo router
 func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cacheSvc echoService, hcSvc healthchecksService, target config.Target) {
-	httpTransport = apm.WrapRoundTripper(http.DefaultTransport)
+	httpTransport = apm.WrapRoundTripper(http.DefaultTransport, apm.WithMaxRetries(0))
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
 	e.Use(apm.WithSentry())

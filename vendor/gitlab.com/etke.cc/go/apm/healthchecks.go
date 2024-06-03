@@ -1,6 +1,7 @@
 package apm
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -41,8 +42,16 @@ func (h healthchecksHook) Run(e *zerolog.Event, level zerolog.Level, msg string)
 	// create a string that appends } to the end of the buf variable you access via reflection, to get a valid JSON object
 	// ref: https://github.com/rs/zerolog/issues/493#issuecomment-1458241050
 	ev := fmt.Sprintf("%s}", reflect.ValueOf(e).Elem().FieldByName("buf"))
+	// try to pretty print the event
+	var evObj any
+	if json.Unmarshal([]byte(ev), &evObj) == nil {
+		pretty, err := json.MarshalIndent(evObj, "", "  ")
+		if err == nil {
+			ev = string(pretty)
+		}
+	}
 
-	HealthcheckFail(strings.NewReader(msg + " " + ev))
+	HealthcheckFail(strings.NewReader(fmt.Sprintf("%s\n%s", msg, ev)))
 }
 
 // HealthcheckFail sends a healthcheck fail event (if healthchecks are configured)
