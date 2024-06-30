@@ -115,8 +115,9 @@ func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) bool 
 		return false
 	}
 
-	if !a.allowedUAs[useragent.Parse(c.Request().UserAgent()).Name] {
-		log.Info().Str("reason", "UA name is not allowed").Msg("rejected")
+	ua := useragent.Parse(c.Request().UserAgent()).Name
+	if !a.allowedUAs[ua] {
+		log.Info().Str("reason", "UA name is not allowed").Str("ua", ua).Msg("rejected")
 		return false
 	}
 
