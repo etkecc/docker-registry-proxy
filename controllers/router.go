@@ -58,36 +58,6 @@ func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cac
 	e.Any("*", proxy(target, hcSvc), authSvc.Middleware(), cacheSvc.Middleware())
 }
 
-func proxyError(w http.ResponseWriter, r *http.Request, hcSvc healthchecksService, err error) {
-	var ctx context.Context
-	var log zerolog.Logger
-	if r != nil {
-		ctx = r.Context()
-		log = apm.Log(ctx).With().
-			Str("method", r.Method).
-			Str("url", r.URL.String()).
-			Logger()
-	} else {
-		ctx = apm.NewContext()
-		log = *apm.Log(ctx)
-	}
-
-	defer func() {
-		if rec := recover(); rec != nil {
-			log.Error().Interface("error", rec).Msg("recovering from panic in proxy error handler")
-			if hcSvc != nil {
-				hcSvc.Fail(strings.NewReader(fmt.Sprintf("panic in proxy error handler: %+v", rec)))
-			}
-			errors.NewResponse(http.StatusInternalServerError).WriteTo(ctx, w)
-		}
-	}()
-	log.Warn().Err(err).Msg("failed")
-	if hcSvc != nil {
-		hcSvc.Fail(strings.NewReader(fmt.Sprintf("%s %s failed: %+v", r.Method, r.URL.String(), err)))
-	}
-	errors.NewResponse(http.StatusBadGateway).WriteTo(ctx, w)
-}
-
 func proxy(target config.Target, hcSvc healthchecksService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
@@ -119,7 +89,44 @@ func proxy(target config.Target, hcSvc healthchecksService) echo.HandlerFunc {
 				Msg("proxied")
 			return nil
 		}
+
+		defer proxyRecover(ctx, c.Response().Writer, hcSvc)
 		proxy.ServeHTTP(c.Response().Writer, c.Request())
 		return nil
 	}
+}
+
+func proxyError(w http.ResponseWriter, r *http.Request, hcSvc healthchecksService, err error) {
+	var ctx context.Context
+	var log zerolog.Logger
+	if r != nil {
+		ctx = r.Context()
+		log = apm.Log(ctx).With().
+			Str("method", r.Method).
+			Str("url", r.URL.String()).
+			Logger()
+	} else {
+		ctx = apm.NewContext()
+		log = *apm.Log(ctx)
+	}
+
+	defer proxyRecover(ctx, w, hcSvc)
+	log.Warn().Err(err).Msg("failed")
+	if hcSvc != nil {
+		hcSvc.Fail(strings.NewReader(fmt.Sprintf("%s %s failed: %+v", r.Method, r.URL.String(), err)))
+	}
+	errors.NewResponse(http.StatusBadGateway).WriteTo(ctx, w)
+}
+
+func proxyRecover(ctx context.Context, w http.ResponseWriter, hcSvc healthchecksService) {
+	r := recover()
+	// special case for https://github.com/golang/go/issues/28239
+	if r == nil || r == http.ErrAbortHandler { //nolint:errorlint // r is not a error
+		return
+	}
+	apm.Log(ctx).Error().Interface("error", r).Msg("recovering from panic")
+	if hcSvc != nil {
+		hcSvc.Fail(strings.NewReader(fmt.Sprintf("panic in proxy handler: %+v", r)))
+	}
+	errors.NewResponse(http.StatusInternalServerError).WriteTo(ctx, w)
 }
