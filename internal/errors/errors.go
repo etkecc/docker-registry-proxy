@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gitlab.com/etke.cc/go/apm"
+	"github.com/etkecc/go-apm"
 )
 
 // Error is a struct for a Docker-compatible error

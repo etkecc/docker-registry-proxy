@@ -1,12 +1,25 @@
-# github.com/VictoriaMetrics/metrics v1.34.0
+# github.com/VictoriaMetrics/metrics v1.35.1
 ## explicit; go 1.17
 github.com/VictoriaMetrics/metrics
-# github.com/archdx/zerolog-sentry v1.8.3
+# github.com/archdx/zerolog-sentry v1.8.4
 ## explicit; go 1.20
 github.com/archdx/zerolog-sentry
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
+# github.com/etkecc/go-apm v1.2.6
+## explicit; go 1.21.0
+github.com/etkecc/go-apm
+# github.com/etkecc/go-echo-basic-auth v1.1.1
+## explicit; go 1.21.0
+github.com/etkecc/go-echo-basic-auth
+# github.com/etkecc/go-env v1.2.1
+## explicit; go 1.18
+github.com/etkecc/go-env
+github.com/etkecc/go-env/dotenv
+# github.com/etkecc/go-healthchecks/v2 v2.2.1
+## explicit; go 1.18
+github.com/etkecc/go-healthchecks/v2
 # github.com/getsentry/sentry-go v0.28.1
 ## explicit; go 1.18
 github.com/getsentry/sentry-go
@@ -63,36 +76,23 @@ github.com/valyala/histogram
 # github.com/ziflex/lecho/v3 v3.7.0
 ## explicit; go 1.17
 github.com/ziflex/lecho/v3
-# gitlab.com/etke.cc/go/apm v1.2.5
-## explicit; go 1.21.0
-gitlab.com/etke.cc/go/apm
-# gitlab.com/etke.cc/go/echo-basic-auth v1.1.0
-## explicit; go 1.21.0
-gitlab.com/etke.cc/go/echo-basic-auth
-# gitlab.com/etke.cc/go/env v1.2.0
-## explicit; go 1.18
-gitlab.com/etke.cc/go/env
-gitlab.com/etke.cc/go/env/dotenv
-# gitlab.com/etke.cc/go/healthchecks/v2 v2.2.0
-## explicit; go 1.18
-gitlab.com/etke.cc/go/healthchecks/v2
-# golang.org/x/crypto v0.24.0
-## explicit; go 1.18
+# golang.org/x/crypto v0.26.0
+## explicit; go 1.20
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
-# golang.org/x/net v0.26.0
+# golang.org/x/net v0.28.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/h2c
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-# golang.org/x/sys v0.21.0
+# golang.org/x/sys v0.24.0
 ## explicit; go 1.18
 golang.org/x/sys/execabs
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.16.0
+# golang.org/x/text v0.17.0
 ## explicit; go 1.18
 golang.org/x/text/cases
 golang.org/x/text/internal
@@ -104,6 +104,6 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.5.0
+# golang.org/x/time v0.6.0
 ## explicit; go 1.18
 golang.org/x/time/rate

@@ -1,8 +1,8 @@
 package config
 
 import (
-	echobasicauth "gitlab.com/etke.cc/go/echo-basic-auth"
-	"gitlab.com/etke.cc/go/env"
+	echobasicauth "github.com/etkecc/go-echo-basic-auth"
+	"github.com/etkecc/go-env"
 )
 
 const prefix = "drp"

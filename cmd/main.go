@@ -11,16 +11,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/etkecc/go-apm"
+	"github.com/etkecc/go-healthchecks/v2"
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"github.com/ziflex/lecho/v3"
-	"gitlab.com/etke.cc/go/apm"
-	"gitlab.com/etke.cc/go/healthchecks/v2"
 
-	"gitlab.com/etke.cc/docker-registry-proxy/config"
-	"gitlab.com/etke.cc/docker-registry-proxy/controllers"
-	"gitlab.com/etke.cc/docker-registry-proxy/services"
+	"github.com/etkecc/docker-registry-proxy/internal/config"
+	"github.com/etkecc/docker-registry-proxy/internal/controllers"
+	"github.com/etkecc/docker-registry-proxy/internal/services"
 )
 
 var (

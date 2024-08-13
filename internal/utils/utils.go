@@ -1,9 +1,9 @@
 package utils
 
 import (
+	"github.com/etkecc/go-apm"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
-	"gitlab.com/etke.cc/go/apm"
 )
 
 // NewMap creates a map from a slice of keys to a single value.

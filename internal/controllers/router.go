@@ -9,16 +9,16 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/etkecc/go-apm"
+	echobasicauth "github.com/etkecc/go-echo-basic-auth"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog"
-	"gitlab.com/etke.cc/go/apm"
-	echobasicauth "gitlab.com/etke.cc/go/echo-basic-auth"
 
-	"gitlab.com/etke.cc/docker-registry-proxy/config"
-	"gitlab.com/etke.cc/docker-registry-proxy/errors"
-	"gitlab.com/etke.cc/docker-registry-proxy/metrics"
-	"gitlab.com/etke.cc/docker-registry-proxy/utils"
+	"github.com/etkecc/docker-registry-proxy/internal/config"
+	"github.com/etkecc/docker-registry-proxy/internal/errors"
+	"github.com/etkecc/docker-registry-proxy/internal/metrics"
+	"github.com/etkecc/docker-registry-proxy/internal/utils"
 )
 
 var httpTransport http.RoundTripper

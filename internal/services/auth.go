@@ -9,9 +9,9 @@ import (
 	"github.com/mileusna/useragent"
 	"github.com/rs/zerolog"
 
-	"gitlab.com/etke.cc/docker-registry-proxy/errors"
-	"gitlab.com/etke.cc/docker-registry-proxy/metrics"
-	"gitlab.com/etke.cc/docker-registry-proxy/utils"
+	"github.com/etkecc/docker-registry-proxy/internal/errors"
+	"github.com/etkecc/docker-registry-proxy/internal/metrics"
+	"github.com/etkecc/docker-registry-proxy/internal/utils"
 )
 
 var (

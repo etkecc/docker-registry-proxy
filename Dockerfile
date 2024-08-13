@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/etke.cc/base/build AS builder
+FROM ghcr.io/etkecc/base/build AS builder
 
 WORKDIR /app
 COPY . .
