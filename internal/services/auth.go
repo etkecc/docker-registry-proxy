@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -62,7 +63,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 				return a.middlewareTrusted(c, ip, log, next)
 			}
 			log.Info().Str("reason", "method not allowed").Msg("rejected")
-			return c.JSON(http.StatusMethodNotAllowed, errors.NewResponse(http.StatusMethodNotAllowed))
+			return c.JSON(http.StatusMethodNotAllowed, errors.NewResponse(http.StatusMethodNotAllowed, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
 		}
 	}
 }
@@ -75,7 +76,7 @@ func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger,
 	if ok := a.allowedFull(c, ip, log); !ok {
 		go metrics.Auth(ip, false)
 		a.cacheAllowedNOK.Add(ip, true)
-		return c.JSON(http.StatusPaymentRequired, errors.NewResponse(http.StatusPaymentRequired))
+		return c.JSON(http.StatusPaymentRequired, errors.NewResponse(http.StatusPaymentRequired, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
 	}
 
 	go metrics.Auth(ip, true)
@@ -92,7 +93,7 @@ func (a *Auth) middlewareTrusted(c echo.Context, ip string, log *zerolog.Logger,
 
 	log.Info().Str("reason", "IP is not trusted").Msg("rejected")
 	go metrics.Auth(ip, false)
-	return c.JSON(http.StatusForbidden, errors.NewResponse(http.StatusForbidden))
+	return c.JSON(http.StatusForbidden, errors.NewResponse(http.StatusForbidden, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
 }
 
 func (a *Auth) allowedFromCache(ip string, log *zerolog.Logger) bool {
