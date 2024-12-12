@@ -2,13 +2,17 @@ package apm
 
 import (
 	"runtime/debug"
+	"sync"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 )
 
 var (
 	hc            Healthchecks
 	loglevel      zerolog.Level
+	initialized   bool
+	initMu        sync.Mutex
 	sentryDSN     string
 	sentryName    string
 	sentryVersion = func() string {
@@ -38,12 +42,39 @@ func SetLogLevel(level string) {
 	zerolog.SetGlobalLevel(loglevel)
 }
 
-// SetSentryDSN sets the sentry DSN
+// SetSentryDSN sets the sentry DSN and initializes it
 func SetSentryDSN(dsn string) {
 	sentryDSN = dsn
+	initSentry()
 }
 
 // SetHealthchecks sets the healthchecks client
 func SetHealthchecks(h Healthchecks) {
 	hc = h
+}
+
+// initSentry initializes sentry
+func initSentry() {
+	initMu.Lock()
+	defer initMu.Unlock()
+
+	if initialized {
+		return
+	}
+
+	if sentryDSN == "" {
+		return
+	}
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:         sentryDSN,
+		Environment: sentryName,
+		Release:     sentryVersion,
+	})
+	if err != nil {
+		NewLoggerPlain().Error().Err(err).Msg("sentry initialization failed")
+		return
+	}
+
+	initialized = true
 }
