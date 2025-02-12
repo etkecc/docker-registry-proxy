@@ -2,6 +2,8 @@ package apm
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -100,7 +102,7 @@ func (rt *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		resp, err = rt.retry(req)
 	}
 
-	if err != nil {
+	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 		HealthcheckFail(strings.NewReader(fmt.Sprintf("http.RoundTripper: %s %s failed: %+v", req.Method, req.URL.String(), err)))
 	}
 	return resp, err

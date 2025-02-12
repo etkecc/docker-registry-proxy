@@ -30,14 +30,14 @@ func StartSpan(ctx context.Context, operation string) *sentry.Span {
 // GetHub returns the hub from the context (if context is provided and has a hub) or the current hub
 func GetHub(ctx ...context.Context) *sentry.Hub {
 	if len(ctx) == 0 {
-		return sentry.CurrentHub()
+		return sentry.CurrentHub().Clone()
 	}
 
 	if hub := sentry.GetHubFromContext(ctx[0]); hub != nil {
 		return hub
 	}
 
-	return sentry.CurrentHub()
+	return sentry.CurrentHub().Clone()
 }
 
 // Flush sends the events to sentry
@@ -52,7 +52,11 @@ func Recover(err any, repanic bool, ctx ...context.Context) {
 		return
 	}
 	HealthcheckFail(strings.NewReader(fmt.Sprintf("panic recovered: %+v", err)))
-	GetHub(ctx...).Recover(err)
+	if len(ctx) > 0 && ctx[0] != nil {
+		GetHub(ctx...).RecoverWithContext(ctx[0], err)
+	} else {
+		GetHub(ctx...).Recover(err)
+	}
 	Flush(ctx...)
 	if repanic {
 		panic(err)
