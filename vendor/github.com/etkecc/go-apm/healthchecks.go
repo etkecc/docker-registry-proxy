@@ -51,7 +51,7 @@ func (h healthchecksHook) Run(e *zerolog.Event, level zerolog.Level, msg string)
 		}
 	}
 
-	HealthcheckFail(strings.NewReader(fmt.Sprintf("%s\n%s", msg, ev)))
+	HealthcheckFail(strings.NewReader(fmt.Sprintf("%s\n%s\n%s", msg, ev, GetStackTrace())))
 }
 
 // HealthcheckFail sends a healthcheck fail event (if healthchecks are configured)
