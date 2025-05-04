@@ -7,13 +7,13 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 ## explicit
 github.com/PuerkitoBio/urlesc
-# github.com/VictoriaMetrics/metrics v1.35.2
+# github.com/VictoriaMetrics/metrics v1.35.4
 ## explicit; go 1.17
 github.com/VictoriaMetrics/metrics
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
-# github.com/etkecc/go-apm v1.3.3
+# github.com/etkecc/go-apm v1.3.5
 ## explicit; go 1.23.0
 github.com/etkecc/go-apm
 # github.com/etkecc/go-echo-basic-auth v1.2.0

@@ -4,8 +4,8 @@ github.com/PuerkitoBio/purell v1.1.1 h1:WEQqlqaGbrPkxLJWfBwQmfEAE1Z7ONdDLqrN38tN
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 h1:d+Bc7a5rLufV/sSk/8dngufqelfh6jnri85riMAaF/M=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
-github.com/VictoriaMetrics/metrics v1.35.2 h1:Bj6L6ExfnakZKYPpi7mGUnkJP4NGQz2v5wiChhXNyWQ=
-github.com/VictoriaMetrics/metrics v1.35.2/go.mod h1:r7hveu6xMdUACXvB8TYdAj8WEsKzWB0EkpJN+RDtOf8=
+github.com/VictoriaMetrics/metrics v1.35.4 h1:GhZ17bHYkujpSzGaH459F7huTLNJ7z90ZXsOXjhHx/8=
+github.com/VictoriaMetrics/metrics v1.35.4/go.mod h1:r7hveu6xMdUACXvB8TYdAj8WEsKzWB0EkpJN+RDtOf8=
 github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=
 github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
@@ -13,8 +13,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/etkecc/go-apm v1.3.3 h1:icHuzPBOVl/8+cB1SfQ8/1UYEX217crKxBu2IMeCgFM=
-github.com/etkecc/go-apm v1.3.3/go.mod h1:R4Zd/pwp4DH2d9fcPCVrERSPPLF48zKvo5IxmSKYhHc=
+github.com/etkecc/go-apm v1.3.5 h1:Cx324wHDOwWqkiXxOolawIe7Lw7wpWbeszvbkkn78nI=
+github.com/etkecc/go-apm v1.3.5/go.mod h1:SCTjzKlNLcFeAO3RhE9uvcRWQF3L7sbfHq+ks4tTIz0=
 github.com/etkecc/go-echo-basic-auth v1.2.0 h1:XzskQo5JpEbFT4y6YTLbVk4n52qIolje3u3u5p12wSw=
 github.com/etkecc/go-echo-basic-auth v1.2.0/go.mod h1:i11w+XgygRe6kpVgrJaABPXiYMlyKFNIFZxJ4s7IQKw=
 github.com/etkecc/go-env v1.2.1 h1:b/mIa8D1d9hc3rI8h5bEtBHsnKkBZ6UbmYPog3QIPTU=

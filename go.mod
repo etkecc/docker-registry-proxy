@@ -5,8 +5,8 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/VictoriaMetrics/metrics v1.35.2
-	github.com/etkecc/go-apm v1.3.3
+	github.com/VictoriaMetrics/metrics v1.35.4
+	github.com/etkecc/go-apm v1.3.5
 	github.com/etkecc/go-echo-basic-auth v1.2.0
 	github.com/etkecc/go-env v1.2.1
 	github.com/etkecc/go-healthchecks/v2 v2.2.2
