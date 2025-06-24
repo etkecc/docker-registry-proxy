@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/etkecc/go-apm"
+	"github.com/etkecc/go-kit"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 )
@@ -20,7 +21,7 @@ func NewLog(c echo.Context) *zerolog.Logger {
 	logCtx := apm.Log(c.Request().Context()).With().
 		Str("method", c.Request().Method).
 		Str("url", c.Request().URL.String()).
-		Str("ip", c.RealIP())
+		Str("ip", kit.AnonymizeIP(c.RealIP()))
 
 	log := logCtx.Logger()
 	return &log

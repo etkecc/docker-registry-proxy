@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/etkecc/go-kit"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/labstack/echo/v4"
 	"github.com/mileusna/useragent"
@@ -51,6 +52,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			log := utils.NewLog(c)
 			ip := c.RealIP()
+			anonymizedIP := kit.AnonymizeIP(ip)
 			if ip == "" {
 				log.Error().Msg("Failed to get client IP")
 				return c.JSON(http.StatusInternalServerError, errors.NewResponse(http.StatusInternalServerError))
@@ -63,7 +65,7 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 				return a.middlewareTrusted(c, ip, log, next)
 			}
 			log.Info().Str("reason", "method not allowed").Msg("rejected")
-			return c.JSON(http.StatusMethodNotAllowed, errors.NewResponse(http.StatusMethodNotAllowed, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
+			return c.JSON(http.StatusMethodNotAllowed, errors.NewResponse(http.StatusMethodNotAllowed, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, anonymizedIP)))
 		}
 	}
 }
