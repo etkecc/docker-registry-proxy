@@ -35,4 +35,3 @@ env:
 * **DRP_ALLOWED_PROVIDER_LOGIN** - (optional) basic auth login for the dynamic auth provider
 * **DRP_ALLOWED_PROVIDER_PASSWORD** - (optional) basic auth password for the dynamic auth provider
 * **DRP_TRUSTED_IPS** - static list of trusted ips, space separated (PATCH, POST, PUT, DELETE requests)
-
