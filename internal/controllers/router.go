@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/etkecc/go-apm"
 	echobasicauth "github.com/etkecc/go-echo-basic-auth"
@@ -33,7 +35,7 @@ type healthchecksService interface {
 
 // ConfigureRouter configures echo router
 func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cacheSvc echoService, hcSvc healthchecksService, target config.Target) {
-	httpTransport = apm.WrapRoundTripper(http.DefaultTransport, apm.WithMaxRetries(0))
+	configureTransport()
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
 	e.Use(apm.WithSentry())
@@ -56,6 +58,21 @@ func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cac
 	e.GET("/metrics", metrics.Handler(), metricsAuthMiddleware)
 
 	e.Any("*", proxy(target, hcSvc), authSvc.Middleware(), cacheSvc.Middleware())
+}
+
+// configureTransport configures the default HTTP transport with a custom dialer and APM instrumentation.
+func configureTransport() {
+	dialer := &net.Dialer{
+		Timeout:   10 * time.Minute,
+		KeepAlive: 10 * time.Minute,
+	}
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		panic("http.DefaultTransport is not an *http.Transport")
+	}
+	transport := defaultTransport.Clone()
+	transport.DialContext = dialer.DialContext
+	httpTransport = apm.WrapRoundTripper(transport, apm.WithMaxRetries(0))
 }
 
 func proxy(target config.Target, hcSvc healthchecksService) echo.HandlerFunc {
