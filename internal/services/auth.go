@@ -140,7 +140,11 @@ func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) bool 
 
 	ok, err := a.provider.IsAllowed(c.Request().Context(), ip)
 	if !ok {
-		log.Info().Str("reason", err.Error()).Msg("rejected")
+		reason := "N/A"
+		if err != nil {
+			reason = err.Error()
+		}
+		log.Info().Str("reason", reason).Msg("rejected")
 		return false
 	}
 
