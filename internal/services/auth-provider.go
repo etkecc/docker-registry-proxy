@@ -99,7 +99,6 @@ func (a *AuthProvider) LoginVia(ctx context.Context, ip, domain, via string) err
 	defer resp.Body.Close()
 	ok := resp.StatusCode == http.StatusOK
 	if !ok {
-		a.cacheAllowed.Add(ip, false)
 		return nil
 	}
 
@@ -113,10 +112,11 @@ func (a *AuthProvider) LoginVia(ctx context.Context, ip, domain, via string) err
 		return err
 	}
 	if len(result) == 0 {
-		a.cacheAllowed.Add(ip, false)
 		return nil
 	}
 	hash := kit.Hash(result[0].Labels["domain"] + result[0].Labels["subscription_provider"] + result[0].Labels["order_issue_id"])
-	a.cacheAllowed.Add(ip, hash == via)
+	if hash == via {
+		a.cacheAllowed.Add(ip, true)
+	}
 	return nil
 }
