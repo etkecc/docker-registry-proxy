@@ -25,8 +25,13 @@ import (
 
 var httpTransport http.RoundTripper
 
-type echoService interface {
+type middlewareService interface {
 	Middleware() echo.MiddlewareFunc
+}
+
+type authService interface {
+	middlewareService
+	LoginVia(context.Context, string, string, string) error
 }
 
 type healthchecksService interface {
@@ -34,7 +39,7 @@ type healthchecksService interface {
 }
 
 // ConfigureRouter configures echo router
-func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cacheSvc echoService, hcSvc healthchecksService, target config.Target) {
+func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc authService, cacheSvc middlewareService, hcSvc healthchecksService, target config.Target) {
 	configureTransport()
 	e.Use(middleware.Recover())
 	e.Use(middleware.Secure())
@@ -55,6 +60,7 @@ func ConfigureRouter(e *echo.Echo, metricsAuth *echobasicauth.Auth, authSvc, cac
 	e.GET("/_health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
+	e.GET("/_via", loginVia(authSvc), middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(1)))
 	e.GET("/metrics", metrics.Handler(), metricsAuthMiddleware)
 
 	e.Any("*", proxy(target, hcSvc), authSvc.Middleware(), cacheSvc.Middleware())
@@ -73,6 +79,20 @@ func configureTransport() {
 	transport := defaultTransport.Clone()
 	transport.DialContext = dialer.DialContext
 	httpTransport = apm.WrapRoundTripper(transport, apm.WithMaxRetries(0))
+}
+
+func loginVia(authSvc authService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		ip := c.RealIP()
+		domain := c.QueryParam("domain")
+		via := c.QueryParam("via")
+		if err := authSvc.LoginVia(ctx, ip, domain, via); err != nil {
+			log := utils.NewLog(c)
+			log.Warn().Err(err).Msg("login via failed")
+		}
+		return c.NoContent(http.StatusNoContent)
+	}
 }
 
 func proxy(target config.Target, hcSvc healthchecksService) echo.HandlerFunc {

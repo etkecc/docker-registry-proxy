@@ -2,10 +2,14 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime/debug"
 	"time"
+
+	"github.com/etkecc/go-kit"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 var version = func() string {
@@ -21,22 +25,28 @@ var version = func() string {
 
 // AuthProvider is an interface for authorization providers
 type AuthProvider struct {
-	url      string
-	login    string
-	password string
+	url          string
+	login        string
+	password     string
+	cacheAllowed *expirable.LRU[string, bool]
 }
 
 // NewAuthProvider creates a new AuthProvider
 func NewAuthProvider(url, login, password string) *AuthProvider {
 	return &AuthProvider{
-		url:      url,
-		login:    login,
-		password: password,
+		url:          url,
+		login:        login,
+		password:     password,
+		cacheAllowed: expirable.NewLRU[string, bool](1000, nil, 2*time.Hour),
 	}
 }
 
 // IsAuthorized checks if the IP is allowed
 func (a *AuthProvider) IsAllowed(ctx context.Context, ip string) (bool, error) {
+	if cached, ok := a.cacheAllowed.Get(ip); ok {
+		return cached, nil
+	}
+
 	var cancel func()
 	ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -60,4 +70,53 @@ func (a *AuthProvider) IsAllowed(ctx context.Context, ip string) (bool, error) {
 		return false, fmt.Errorf("%s", resp.Status)
 	}
 	return true, nil
+}
+
+// LoginVia checks if the IP is allowed
+func (a *AuthProvider) LoginVia(ctx context.Context, ip, domain, via string) error {
+	if cached, ok := a.cacheAllowed.Get(ip); ok {
+		a.cacheAllowed.Add(ip, cached)
+		return nil
+	}
+
+	var cancel func()
+	ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	endpoint := fmt.Sprintf(a.url, domain)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
+	if err != nil {
+		return err
+	}
+	if a.login != "" && a.password != "" {
+		req.SetBasicAuth(a.login, a.password)
+	}
+	req.Header.Set("User-Agent", "Docker-Registry-Proxy/"+version)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	ok := resp.StatusCode == http.StatusOK
+	if !ok {
+		a.cacheAllowed.Add(ip, false)
+		return nil
+	}
+
+	type respIem struct {
+		Targets []string          `json:"targets"`
+		Labels  map[string]string `json:"labels"`
+	}
+	var result []*respIem
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return err
+	}
+	if len(result) == 0 {
+		a.cacheAllowed.Add(ip, false)
+		return nil
+	}
+	hash := kit.Hash(result[0].Labels["domain"] + result[0].Labels["subscription_provider"] + result[0].Labels["order_issue_id"])
+	a.cacheAllowed.Add(ip, hash == via)
+	return nil
 }

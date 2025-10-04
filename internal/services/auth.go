@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -68,6 +69,14 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 			return c.JSON(http.StatusMethodNotAllowed, errors.NewResponse(http.StatusMethodNotAllowed, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, anonymizedIP)))
 		}
 	}
+}
+
+// LoginVia performs a login via the auth provider
+func (a *Auth) LoginVia(ctx context.Context, ip, domain, via string) error {
+	if a.provider == nil {
+		return fmt.Errorf("Auth Provider is not configured")
+	}
+	return a.provider.LoginVia(ctx, ip, domain, via)
 }
 
 func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger, next echo.HandlerFunc) error {
