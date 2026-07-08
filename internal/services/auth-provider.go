@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/etkecc/go-kit"
@@ -13,16 +13,7 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
-var version = func() string {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for _, setting := range info.Settings {
-			if setting.Key == "vcs.revision" {
-				return setting.Value
-			}
-		}
-	}
-	return "0.0.0-unknown"
-}()
+var userAgent = sync.OnceValue(func() string { return kit.UserAgent("Docker-Registry-Proxy", "") })()
 
 // AuthProvider is an interface for authorization providers
 type AuthProvider struct {
@@ -62,7 +53,7 @@ func (a *AuthProvider) IsAllowed(ctx context.Context, ip string) (bool, error) {
 	if a.login != "" && a.password != "" {
 		req.SetBasicAuth(a.login, a.password)
 	}
-	req.Header.Set("User-Agent", "Docker-Registry-Proxy/"+version)
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := a.hc.Do(req)
 	if err != nil {
 		return false, err
@@ -94,7 +85,7 @@ func (a *AuthProvider) LoginVia(ctx context.Context, ip, domain, via string) err
 	if a.login != "" && a.password != "" {
 		req.SetBasicAuth(a.login, a.password)
 	}
-	req.Header.Set("User-Agent", "Docker-Registry-Proxy/"+version)
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := a.hc.Do(req)
 	if err != nil {
 		return err

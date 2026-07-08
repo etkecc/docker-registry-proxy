@@ -60,7 +60,7 @@ func NewLogger(ctx context.Context) Logger { // nolint: dupl
 	}
 
 	client := hub.Client()
-	if client != nil && client.options.EnableLogs {
+	if client != nil && !client.options.DisableLogs {
 		// Build default attrs
 		serverAddr := client.options.ServerName
 		if serverAddr == "" {
@@ -91,7 +91,7 @@ func NewLogger(ctx context.Context) Logger { // nolint: dupl
 		}
 	}
 
-	debuglog.Println("fallback to noopLogger: enableLogs disabled")
+	debuglog.Println("fallback to noopLogger: SDK not initialized or logs disabled")
 	return &noopLogger{}
 }
 
@@ -116,7 +116,7 @@ func (l *sentryLogger) log(ctx context.Context, level LogLevel, severity int, me
 	}
 
 	scope := hub.Scope()
-	traceID, spanID := resolveTrace(scope, ctx, l.ctx)
+	traceID, spanID := resolveTrace(scope, client, ctx, l.ctx)
 
 	// Pre-allocate with capacity hint to avoid map growth reallocations
 	estimatedCap := len(l.defaultAttributes) + len(entryAttrs) + len(args) + 8 // scope ~3 + instance ~5

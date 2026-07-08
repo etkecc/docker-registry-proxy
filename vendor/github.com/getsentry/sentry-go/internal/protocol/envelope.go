@@ -26,7 +26,7 @@ type EnvelopeHeader struct {
 	// Dsn can be used for self-authenticated envelopes.
 	// This means that the envelope has all the information necessary to be sent to sentry.
 	// In this case the full DSN must be stored in this key.
-	Dsn string `json:"dsn,omitempty"`
+	Dsn *Dsn `json:"dsn,omitempty"`
 
 	// Sdk carries the same payload as the sdk interface in the event payload but can be carried for all events.
 	// This means that SDK information can be carried for minidumps, session data and other submissions.
@@ -80,12 +80,16 @@ type EnvelopeItem struct {
 	Payload []byte              `json:"-"`
 }
 
-// NewEnvelope creates a new envelope with the given header.
-func NewEnvelope(header *EnvelopeHeader) *Envelope {
-	return &Envelope{
+// NewEnvelope creates a new envelope with the given header and items.
+func NewEnvelope(header *EnvelopeHeader, items ...*EnvelopeItem) *Envelope {
+	envelope := &Envelope{
 		Header: header,
-		Items:  make([]*EnvelopeItem, 0),
+		Items:  make([]*EnvelopeItem, 0, len(items)),
 	}
+	for _, item := range items {
+		envelope.AddItem(item)
+	}
+	return envelope
 }
 
 // AddItem adds an item to the envelope.
