@@ -1,6 +1,6 @@
 module github.com/etkecc/docker-registry-proxy
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/VictoriaMetrics/metrics v1.42.0
@@ -8,7 +8,7 @@ require (
 	github.com/etkecc/go-echo-basic-auth v1.4.0
 	github.com/etkecc/go-env v1.2.1
 	github.com/etkecc/go-healthchecks/v2 v2.2.2
-	github.com/etkecc/go-kit v1.7.7
+	github.com/etkecc/go-kit v1.12.3
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/labstack/echo/v4 v4.15.1

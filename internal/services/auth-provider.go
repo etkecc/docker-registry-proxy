@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/etkecc/go-kit"
+	"github.com/etkecc/go-kit/httpclient"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
@@ -29,6 +30,7 @@ type AuthProvider struct {
 	login        string
 	password     string
 	cacheAllowed *expirable.LRU[string, bool]
+	hc           *http.Client
 }
 
 // NewAuthProvider creates a new AuthProvider
@@ -38,6 +40,7 @@ func NewAuthProvider(url, login, password string) *AuthProvider {
 		login:        login,
 		password:     password,
 		cacheAllowed: expirable.NewLRU[string, bool](1000, nil, 2*time.Hour),
+		hc:           httpclient.NewSingleHost(),
 	}
 }
 
@@ -60,7 +63,7 @@ func (a *AuthProvider) IsAllowed(ctx context.Context, ip string) (bool, error) {
 		req.SetBasicAuth(a.login, a.password)
 	}
 	req.Header.Set("User-Agent", "Docker-Registry-Proxy/"+version)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := a.hc.Do(req)
 	if err != nil {
 		return false, err
 	}
@@ -92,7 +95,7 @@ func (a *AuthProvider) LoginVia(ctx context.Context, ip, domain, via string) err
 		req.SetBasicAuth(a.login, a.password)
 	}
 	req.Header.Set("User-Agent", "Docker-Registry-Proxy/"+version)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := a.hc.Do(req)
 	if err != nil {
 		return err
 	}
