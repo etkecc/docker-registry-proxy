@@ -69,8 +69,7 @@ func extractName(reqURL string) string {
 	return strings.Join(imageParts, "/")
 }
 
-// Request increments the total requests counter and the specific method counter
-// plus, it tries to parse image name from the URL path, and increments the specific image counter
+// Request increments the total, method, and (when parseable) image request counters.
 func Request(method, path string) {
 	requestsTotal.Inc()
 	switch method {

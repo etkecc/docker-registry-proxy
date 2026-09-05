@@ -34,9 +34,7 @@ func main() {
 
 	cfg := config.New()
 	apm.SetName("drp")
-	// NOTE: due to the goroutine leak in sentry, it's disabled for now
-	// ref: https://github.com/getsentry/sentry-go/issues/731
-	// apm.SetSentryDSN(cfg.SentryDSN)
+	// NOTE: sentry disabled (goroutine leak, sentry-go#731); apm.SetSentryDSN(cfg.SentryDSN) stays commented out.
 	apm.SetLogLevel(cfg.LogLevel)
 	apm.WrapClient(nil)
 	log = apm.Log()

@@ -42,7 +42,7 @@ var (
 	}
 )
 
-// Cache is a middleware that caches responses according to the Docker Registry API v2 specification, cacheable endpoints and status codes.
+// Cache is a middleware that caches responses per the Docker Registry API v2 spec, cacheable endpoints and statuses.
 type Cache struct {
 	enabled bool
 	backend *expirable.LRU[string, cached]
@@ -56,7 +56,7 @@ func NewCache(enabled bool, ttl, size int) *Cache {
 	}
 }
 
-// Middleware returns a new echo.MiddlewareFunc that caches responses according to the Docker Registry API v2 specification, cacheable endpoints and status codes.
+// Middleware returns an echo.MiddlewareFunc caching responses per the Docker Registry API v2 spec and status codes.
 func (cache *Cache) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

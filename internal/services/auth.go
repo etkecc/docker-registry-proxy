@@ -22,10 +22,7 @@ var (
 	trustedMethods = utils.NewMap([]string{"PATCH", "POST", "PUT", "DELETE"}, true)
 )
 
-// Auth is a service for authentication
-// it breaks into 2 "modes" - allowed and trusted
-// allowed mode is for "read" requests (GET, HEAD, OPTIONS)
-// trusted mode is for "write" requests (PATCH, POST, PUT, DELETE)
+// Auth handles authentication: allowed mode for reads, trusted mode for writes (PATCH/POST/PUT/DELETE).
 type Auth struct {
 	allowedIPs      map[string]bool
 	allowedUAs      map[string]bool
