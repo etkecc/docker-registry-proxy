@@ -7,37 +7,38 @@ github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 ## explicit
 github.com/PuerkitoBio/urlesc
-# github.com/VictoriaMetrics/metrics v1.44.0
+# github.com/VictoriaMetrics/metrics v1.44.1
 ## explicit; go 1.24.0
 github.com/VictoriaMetrics/metrics
-# github.com/buger/jsonparser v1.2.0
+# github.com/buger/jsonparser v1.6.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
 # github.com/etkecc/go-apm v1.3.5
 ## explicit; go 1.23.0
 github.com/etkecc/go-apm
-# github.com/etkecc/go-echo-basic-auth v1.4.0
-## explicit; go 1.25.0
+# github.com/etkecc/go-echo-basic-auth v1.5.0
+## explicit; go 1.26.0
 github.com/etkecc/go-echo-basic-auth
-# github.com/etkecc/go-env v1.2.1
-## explicit; go 1.18
+# github.com/etkecc/go-env v1.3.1
+## explicit; go 1.26
 github.com/etkecc/go-env
-github.com/etkecc/go-env/dotenv
+github.com/etkecc/go-env/envfile
 # github.com/etkecc/go-healthchecks/v2 v2.4.1
 ## explicit; go 1.26
 github.com/etkecc/go-healthchecks/v2
-# github.com/etkecc/go-kit v1.12.4
+# github.com/etkecc/go-kit v1.12.5
 ## explicit; go 1.26
 github.com/etkecc/go-kit
 github.com/etkecc/go-kit/httpclient
 github.com/etkecc/go-kit/retry
-# github.com/getsentry/sentry-go v0.47.0
+# github.com/getsentry/sentry-go v0.50.0
 ## explicit; go 1.25.0
 github.com/getsentry/sentry-go
 github.com/getsentry/sentry-go/attribute
 github.com/getsentry/sentry-go/internal/debug
 github.com/getsentry/sentry-go/internal/debuglog
 github.com/getsentry/sentry-go/internal/http
+github.com/getsentry/sentry-go/internal/httputils
 github.com/getsentry/sentry-go/internal/otel/baggage
 github.com/getsentry/sentry-go/internal/otel/baggage/internal/baggage
 github.com/getsentry/sentry-go/internal/protocol
@@ -45,7 +46,7 @@ github.com/getsentry/sentry-go/internal/ratelimit
 github.com/getsentry/sentry-go/internal/telemetry
 github.com/getsentry/sentry-go/internal/util
 github.com/getsentry/sentry-go/report
-# github.com/getsentry/sentry-go/zerolog v0.47.0
+# github.com/getsentry/sentry-go/zerolog v0.50.0
 ## explicit; go 1.25.0
 github.com/getsentry/sentry-go/zerolog
 # github.com/go-openapi/jsonpointer v0.19.5
@@ -70,8 +71,8 @@ github.com/hashicorp/golang-lru/v2/internal
 # github.com/josharian/intern v1.0.0
 ## explicit; go 1.5
 github.com/josharian/intern
-# github.com/labstack/echo/v4 v4.15.4
-## explicit; go 1.25.0
+# github.com/labstack/echo/v4 v4.16.3
+## explicit; go 1.26.0
 github.com/labstack/echo/v4
 github.com/labstack/echo/v4/middleware
 # github.com/labstack/gommon v0.5.0
@@ -84,11 +85,11 @@ github.com/labstack/gommon/log
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/mattn/go-colorable v0.1.15
+# github.com/mattn/go-colorable v0.1.16
 ## explicit; go 1.18
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.22
-## explicit; go 1.21
+# github.com/mattn/go-isatty v0.0.24
+## explicit; go 1.20
 github.com/mattn/go-isatty
 # github.com/mileusna/useragent v1.3.5
 ## explicit; go 1.14
@@ -113,15 +114,17 @@ github.com/valyala/fasttemplate
 # github.com/valyala/histogram v1.2.0
 ## explicit; go 1.12
 github.com/valyala/histogram
-# github.com/ziflex/lecho/v3 v3.11.0
-## explicit; go 1.24.0
-github.com/ziflex/lecho/v3
-# golang.org/x/crypto v0.54.0
+# github.com/ziflex/lecho/v3 v3.11.1
 ## explicit; go 1.25.0
+github.com/ziflex/lecho/v3
+# golang.org/x/crypto v0.58.0
+## explicit; go 1.26.0
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
-# golang.org/x/net v0.57.0
-## explicit; go 1.25.0
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
+# golang.org/x/net v0.62.0
+## explicit; go 1.26.0
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/h2c
@@ -129,13 +132,13 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/httpsfv
-# golang.org/x/sys v0.47.0
-## explicit; go 1.25.0
+# golang.org/x/sys v0.49.0
+## explicit; go 1.26.0
 golang.org/x/sys/execabs
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.40.0
-## explicit; go 1.25.0
+# golang.org/x/text v0.43.0
+## explicit; go 1.26.0
 golang.org/x/text/cases
 golang.org/x/text/internal
 golang.org/x/text/internal/language
@@ -147,11 +150,11 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.15.0
-## explicit; go 1.25.0
+# golang.org/x/time v0.16.0
+## explicit; go 1.26.0
 golang.org/x/time/rate
-# golang.org/x/tools v0.47.0
-## explicit; go 1.25.0
+# golang.org/x/tools v0.51.0
+## explicit; go 1.26.0
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/buildutil
 golang.org/x/tools/go/internal/cgo
