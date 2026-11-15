@@ -3,15 +3,15 @@ module github.com/etkecc/docker-registry-proxy
 go 1.26.0
 
 require (
-	github.com/VictoriaMetrics/metrics v1.44.1
-	github.com/etkecc/go-apm v1.3.5
-	github.com/etkecc/go-echo-basic-auth v1.5.0
+	github.com/VictoriaMetrics/metrics v1.45.0
+	github.com/etkecc/go-apm v1.3.7
+	github.com/etkecc/go-echo-basic-auth v1.5.1
 	github.com/etkecc/go-env v1.3.1
 	github.com/etkecc/go-healthchecks/v2 v2.4.1
-	github.com/etkecc/go-kit v1.12.5
+	github.com/etkecc/go-kit v1.12.6
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/labstack/echo/v4 v4.16.3
+	github.com/labstack/echo/v4 v4.16.5
 	github.com/mileusna/useragent v1.3.5
 	github.com/rs/zerolog v1.35.1
 	github.com/swaggo/swag v1.16.3
@@ -38,11 +38,11 @@ require (
 	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
-	golang.org/x/tools v0.51.0 // indirect
+	golang.org/x/tools v0.52.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
