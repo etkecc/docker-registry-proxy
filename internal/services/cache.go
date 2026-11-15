@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/etkecc/docker-registry-proxy/internal/metrics"
 	"github.com/etkecc/docker-registry-proxy/internal/utils"
@@ -59,7 +59,7 @@ func NewCache(enabled bool, ttl, size int) *Cache {
 // Middleware returns an echo.MiddlewareFunc caching responses per the Docker Registry API v2 spec and status codes.
 func (cache *Cache) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			if !cache.enabled {
 				return next(c)
 			}
@@ -70,12 +70,12 @@ func (cache *Cache) Middleware() echo.MiddlewareFunc {
 			log := utils.NewLog(c)
 
 			if !cacheable {
-				log.Debug().Msg("not cacheable")
+				log.Debug("not cacheable")
 				return next(c)
 			}
 
 			if cache.returnCached(c, cachekey) {
-				log.Info().Msg("cache hit")
+				log.Info("cache hit")
 				go metrics.Cache(true)
 				return nil
 			}
@@ -86,7 +86,7 @@ func (cache *Cache) Middleware() echo.MiddlewareFunc {
 			}
 
 			if cache.store(c, rec, cachekey) {
-				log.Debug().Msg("cache miss")
+				log.Debug("cache miss")
 				go metrics.Cache(false)
 				return nil
 			}
@@ -96,7 +96,7 @@ func (cache *Cache) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-func (cache *Cache) returnCached(c echo.Context, cachekey string) bool {
+func (cache *Cache) returnCached(c *echo.Context, cachekey string) bool {
 	if v, ok := cache.backend.Get(cachekey); ok {
 		resp := v.Response() //nolint:bodyclose // it's io.NopCloser
 		resp.Header.Set("X-Cache", "HIT")
@@ -110,38 +110,43 @@ func (cache *Cache) returnCached(c echo.Context, cachekey string) bool {
 	return false
 }
 
-func (cache *Cache) record(c echo.Context, next echo.HandlerFunc) (*recorder, error) {
-	rec := &recorder{c.Response().Writer, bytes.Buffer{}}
-	c.Response().Writer = rec
+func (cache *Cache) record(c *echo.Context, next echo.HandlerFunc) (*recorder, error) {
+	resp, err := echo.UnwrapResponse(c.Response())
+	if err != nil {
+		return nil, err
+	}
+
+	rec := &recorder{resp.ResponseWriter, bytes.Buffer{}}
+	resp.ResponseWriter = rec
 	c.Response().Header().Set("X-Cache", "MISS")
-	err := next(c)
+	err = next(c)
 	return rec, err
 }
 
-func (cache *Cache) store(c echo.Context, rec *recorder, cachekey string) bool {
-	var status int
-	if s, ok := c.Get("resp.status").(int); ok {
-		status = s
-	} else {
-		status = c.Response().Status
+func (cache *Cache) store(c *echo.Context, rec *recorder, cachekey string) bool {
+	resp, err := echo.UnwrapResponse(c.Response())
+	if err != nil {
+		return false
 	}
+
+	status := resp.Status
 	if !cacheableStatuses[status] {
 		return false
 	}
 
 	headers := c.Response().Header().Clone()
 	headers.Del("Date")
-	resp := cached{
+	entry := cached{
 		ContentLength: int64(rec.body.Len()),
-		StatusCode:    c.Response().Status,
+		StatusCode:    status,
 		Header:        headers,
 		Body:          rec.body.Bytes(),
 	}
-	cache.backend.Add(cachekey, resp)
+	cache.backend.Add(cachekey, entry)
 	return true
 }
 
-func (cache *Cache) key(c echo.Context) string {
+func (cache *Cache) key(c *echo.Context) string {
 	hasher := sha256.New()
 	hasher.Write([]byte(c.Request().Method))
 	hasher.Write([]byte(c.Request().URL.String()))
@@ -186,7 +191,12 @@ func (r *recorder) Write(b []byte) (int, error) {
 	return r.body.Write(b[:i])
 }
 
-func isCacheable(c echo.Context) bool {
+// Unwrap exposes the wrapped writer so http.ResponseController can flush and hijack through it.
+func (r *recorder) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
+}
+
+func isCacheable(c *echo.Context) bool {
 	endpoint := c.Request().Method + " " + c.Request().URL.String()
 	for _, re := range cacheableEndpoints {
 		if re.MatchString(endpoint) {

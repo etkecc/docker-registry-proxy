@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/VictoriaMetrics/metrics"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 var (
@@ -29,7 +29,7 @@ var (
 
 // Handler returns an echo handler that writes prometheus metrics to the response
 func Handler() echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		metrics.WritePrometheus(c.Response(), false)
 		return nil
 	}
@@ -51,6 +51,9 @@ func extractName(reqURL string) string {
 
 		if withManifest {
 			if strings.HasPrefix(part, "sha256:") { // we don't want to count specific blobs, only tags
+				return ""
+			}
+			if len(imageParts) == 0 { // a bare /v2/manifests/<ref> names no repository
 				return ""
 			}
 
@@ -96,7 +99,7 @@ func Auth(ip string, success bool) {
 	}
 }
 
-// Cache increments the cache hits or misses counter
+// Cache increments the cache hits or misses counters
 func Cache(hit bool) {
 	if hit {
 		cacheHit.Inc()

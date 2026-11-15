@@ -2,17 +2,18 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/etkecc/go-kit"
 	"github.com/hashicorp/golang-lru/v2/expirable"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/mileusna/useragent"
-	"github.com/rs/zerolog"
 
-	"github.com/etkecc/docker-registry-proxy/internal/errors"
+	drperrors "github.com/etkecc/docker-registry-proxy/internal/errors"
 	"github.com/etkecc/docker-registry-proxy/internal/metrics"
 	"github.com/etkecc/docker-registry-proxy/internal/utils"
 )
@@ -47,13 +48,13 @@ func NewAuth(allowedIPs, allowedUAs, trustedIPs []string, cacheTTL, cacheSize in
 // Middleware returns a middleware for echo
 func (a *Auth) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			log := utils.NewLog(c)
 			ip := c.RealIP()
 			anonymizedIP := kit.AnonymizeIP(ip)
 			if ip == "" {
-				log.Error().Msg("Failed to get client IP")
-				return c.JSON(http.StatusInternalServerError, errors.NewResponse(http.StatusInternalServerError))
+				log.Error("Failed to get client IP")
+				return c.JSON(http.StatusInternalServerError, drperrors.NewResponse(http.StatusInternalServerError))
 			}
 
 			if allowedMethods[c.Request().Method] {
@@ -62,8 +63,8 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 			if trustedMethods[c.Request().Method] {
 				return a.middlewareTrusted(c, ip, log, next)
 			}
-			log.Info().Str("reason", "method not allowed").Msg("rejected")
-			return c.JSON(http.StatusMethodNotAllowed, errors.NewResponse(http.StatusMethodNotAllowed, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, anonymizedIP)))
+			log.Info("rejected", "reason", "method not allowed")
+			return c.JSON(http.StatusMethodNotAllowed, drperrors.NewResponse(http.StatusMethodNotAllowed, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, anonymizedIP)))
 		}
 	}
 }
@@ -71,12 +72,12 @@ func (a *Auth) Middleware() echo.MiddlewareFunc {
 // LoginVia performs a login via the auth provider
 func (a *Auth) LoginVia(ctx context.Context, ip, domain, via string) error {
 	if a.provider == nil {
-		return fmt.Errorf("Auth Provider is not configured")
+		return errors.New("Auth Provider is not configured")
 	}
 	return a.provider.LoginVia(ctx, ip, domain, via)
 }
 
-func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger, next echo.HandlerFunc) error {
+func (a *Auth) middlewareAllowed(c *echo.Context, ip string, log *slog.Logger, next echo.HandlerFunc) error {
 	if a.allowedFromCache(ip, log) {
 		go metrics.Auth(ip, true)
 		return next(c)
@@ -84,7 +85,7 @@ func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger,
 	if ok := a.allowedFull(c, ip, log); !ok {
 		go metrics.Auth(ip, false)
 		a.cacheAllowedNOK.Add(ip, true)
-		return c.JSON(http.StatusPaymentRequired, errors.NewResponse(http.StatusPaymentRequired, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
+		return c.JSON(http.StatusPaymentRequired, drperrors.NewResponse(http.StatusPaymentRequired, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
 	}
 
 	go metrics.Auth(ip, true)
@@ -92,46 +93,46 @@ func (a *Auth) middlewareAllowed(c echo.Context, ip string, log *zerolog.Logger,
 	return next(c)
 }
 
-func (a *Auth) middlewareTrusted(c echo.Context, ip string, log *zerolog.Logger, next echo.HandlerFunc) error {
+func (a *Auth) middlewareTrusted(c *echo.Context, ip string, log *slog.Logger, next echo.HandlerFunc) error {
 	if a.trustedIPs[ip] {
-		log.Debug().Msg("trusted IP")
+		log.Debug("trusted IP")
 		go metrics.Auth(ip, true)
 		return next(c)
 	}
 
-	log.Info().Str("reason", "IP is not trusted").Msg("rejected")
+	log.Info("rejected", "reason", "IP is not trusted")
 	go metrics.Auth(ip, false)
-	return c.JSON(http.StatusForbidden, errors.NewResponse(http.StatusForbidden, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
+	return c.JSON(http.StatusForbidden, drperrors.NewResponse(http.StatusForbidden, fmt.Sprintf("Method %s is not allowed for IP %s", c.Request().Method, ip)))
 }
 
-func (a *Auth) allowedFromCache(ip string, log *zerolog.Logger) bool {
+func (a *Auth) allowedFromCache(ip string, log *slog.Logger) bool {
 	if a.allowedIPs[ip] {
-		log.Debug().Msg("allowed IP")
+		log.Debug("allowed IP")
 		return true
 	}
 
 	if _, ok := a.cacheAllowedOK.Get(ip); ok {
-		log.Debug().Msg("OK cache hit")
+		log.Debug("OK cache hit")
 		return true
 	}
 
 	return false
 }
 
-func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) bool {
+func (a *Auth) allowedFull(c *echo.Context, ip string, log *slog.Logger) bool {
 	if _, ok := a.cacheAllowedNOK.Get(ip); ok {
-		log.Info().Str("reason", "cached NOK").Msg("rejected")
+		log.Info("rejected", "reason", "cached NOK")
 		return false
 	}
 
 	ua := useragent.Parse(c.Request().UserAgent()).Name
 	if !a.allowedUAs[ua] {
-		log.Info().Str("reason", "UA name is not allowed").Str("ua", ua).Msg("rejected")
+		log.Info("rejected", "reason", "UA name is not allowed", "ua", ua)
 		return false
 	}
 
 	if a.provider == nil {
-		log.Debug().Msg("Auth Provider is not configured")
+		log.Debug("Auth Provider is not configured")
 		return true
 	}
 
@@ -141,7 +142,7 @@ func (a *Auth) allowedFull(c echo.Context, ip string, log *zerolog.Logger) bool 
 		if err != nil {
 			reason = err.Error()
 		}
-		log.Info().Str("reason", reason).Msg("rejected")
+		log.Info("rejected", "reason", reason)
 		return false
 	}
 

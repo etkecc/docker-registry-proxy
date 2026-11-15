@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"github.com/etkecc/go-apm"
+	"log/slog"
+
+	"github.com/etkecc/go-apm/v2"
 	"github.com/etkecc/go-kit"
-	"github.com/labstack/echo/v4"
-	"github.com/rs/zerolog"
+	"github.com/labstack/echo/v5"
 )
 
 // NewMap creates a map from a slice of keys to a single value.
@@ -16,13 +17,11 @@ func NewMap[T comparable, V any](slice []T, value V) map[T]V {
 	return m
 }
 
-// NewLog creates a new logger with context from echo.Context
-func NewLog(c echo.Context) *zerolog.Logger {
-	logCtx := apm.Log(c.Request().Context()).With().
-		Str("method", c.Request().Method).
-		Str("url", c.Request().URL.String()).
-		Str("ip", kit.AnonymizeIP(c.RealIP()))
-
-	log := logCtx.Logger()
-	return &log
+// NewLog returns the request logger carrying method, url and anonymized client IP.
+func NewLog(c *echo.Context) *slog.Logger {
+	return apm.Log(c.Request().Context()).With(
+		"method", c.Request().Method,
+		"url", c.Request().URL.String(),
+		"ip", kit.AnonymizeIP(c.RealIP()),
+	)
 }

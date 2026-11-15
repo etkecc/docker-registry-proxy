@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/etkecc/go-apm"
+	"github.com/etkecc/go-apm/v2"
 )
 
 // Error is a struct for a Docker-compatible error
@@ -36,7 +36,7 @@ func (e *Response) WriteTo(ctx context.Context, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(e.Errors[0].HTTPCode)
 	if err := json.NewEncoder(w).Encode(e); err != nil {
-		apm.Log(ctx).Error().Err(err).Msg("failed to write error response")
+		apm.Log(ctx).Error("failed to write error response", "error", err)
 	}
 }
 
